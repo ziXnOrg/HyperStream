@@ -1,0 +1,11 @@
+{
+  "description": "Schema lock for cluster_bench NDJSON rows",
+  "type": "object",
+  "required": [
+    "name","dim_bits","capacity","updates",
+    "update_iters","update_secs","updates_per_sec",
+    "finalize_iters","finalize_secs","finalizes_per_sec",
+    "sample_index","warmup_ms","measure_ms"
+  ]
+}
+

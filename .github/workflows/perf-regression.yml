@@ -1,0 +1,90 @@
+name: Perf Regression (NDJSON)
+
+on:
+  pull_request:
+    branches: [ "**" ]
+  push:
+    branches: [ main ]
+
+jobs:
+  perf:
+    name: Perf (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      PERF_TOL_QPS_PCT: "15"     # allowed drop percent for queries/sec
+      PERF_TOL_GBPS_PCT: "15"    # allowed drop percent for effective GB/s (AM only)
+      WARMUP_MS: "100"
+      MEASURE_MS: "200"
+      SAMPLES: "5"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deps (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Configure
+        run: |
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          else
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          fi
+        shell: bash
+
+      - name: Build
+        run: |
+          cmake --build build --config Release -j 4
+        shell: bash
+
+      - name: Run benches (NDJSON)
+        id: run_benches
+        run: |
+          set -e
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            AM=build/benchmarks/Release/am_bench.exe
+            CL=build/benchmarks/Release/cluster_bench.exe
+          else
+            AM=build/benchmarks/am_bench
+            CL=build/benchmarks/cluster_bench
+          fi
+          echo "Using $AM and $CL"
+          "$AM" --json --warmup_ms=$WARMUP_MS --measure_ms=$MEASURE_MS --samples=$SAMPLES > am.ndjson
+          "$CL" --json --warmup_ms=$WARMUP_MS --measure_ms=$MEASURE_MS --samples=$SAMPLES > cluster.ndjson
+          echo "am.ndjson lines: $(wc -l < am.ndjson || echo 0)"
+          echo "cluster.ndjson lines: $(wc -l < cluster.ndjson || echo 0)"
+        shell: bash
+
+      - name: Save NDJSON artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ndjson-${{ matrix.os }}
+          path: |
+            am.ndjson
+            cluster.ndjson
+
+      - name: Prepare Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Validate schema + compare with baseline
+        env:
+          OS_NAME: ${{ matrix.os }}
+        run: |
+          python3 scripts/bench_check.py \
+            --am am.ndjson \
+            --cluster cluster.ndjson \
+            --am-schema ci/ndjson_schema/am_bench.schema.json \
+            --cluster-schema ci/ndjson_schema/cluster_bench.schema.json \
+            --baseline-dir ci/perf_baseline \
+            --os $OS_NAME \
+            --tol-qps $PERF_TOL_QPS_PCT \
+            --tol-gbps $PERF_TOL_GBPS_PCT
+        shell: bash
+

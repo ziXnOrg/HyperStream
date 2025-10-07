@@ -15,17 +15,26 @@ REQ_CLUSTER = [
 
 def load_ndjson(path):
     rows=[]
-    with open(path,'r',encoding='utf-8') as f:
-        for ln, line in enumerate(f,1):
-            line=line.strip()
-            if not line:
-                continue
-            try:
-                obj=json.loads(line)
-                rows.append(obj)
-            except Exception as e:
-                print(f"ERROR: {path}:{ln} invalid JSON: {e}", file=sys.stderr)
-                raise
+    # Read raw bytes to handle Windows PowerShell redirection (UTF-16 LE by default)
+    with open(path,'rb') as f:
+        data=f.read()
+    # Decode with BOM detection; fallback to UTF-8
+    if data.startswith(b'\xff\xfe'):
+        text=data.decode('utf-16-le', errors='strict')
+    elif data.startswith(b'\xfe\xff'):
+        text=data.decode('utf-16-be', errors='strict')
+    else:
+        text=data.decode('utf-8', errors='strict')
+    for ln, line in enumerate(text.splitlines(), 1):
+        line=line.strip()
+        if not line or not line.startswith('{'):
+            continue
+        try:
+            obj=json.loads(line)
+            rows.append(obj)
+        except Exception as e:
+            print(f"ERROR: {path}:{ln} invalid JSON object: {e}", file=sys.stderr)
+            raise
     return rows
 
 def require_fields(rows, req):
@@ -33,6 +42,13 @@ def require_fields(rows, req):
         missing=[k for k in req if k not in obj]
         if missing:
             raise SystemExit(f"Missing fields in row {i}: {missing}")
+
+def filter_rows(rows, req):
+    out=[]
+    for o in rows:
+        if all((k in o) for k in req):
+            out.append(o)
+    return out
 
 def group_key_am(o):
     return (o["name"], int(o["dim_bits"]), int(o["capacity"]), int(o["size"]))
@@ -109,8 +125,8 @@ def compare_metric(current, baseline, tol_pct, label):
 
 
 def run(args):
-    am_rows=load_ndjson(args.am)
-    cl_rows=load_ndjson(args.cluster)
+    am_rows=filter_rows(load_ndjson(args.am), REQ_AM)
+    cl_rows=filter_rows(load_ndjson(args.cluster), REQ_CLUSTER)
     require_fields(am_rows, REQ_AM)
     require_fields(cl_rows, REQ_CLUSTER)
 

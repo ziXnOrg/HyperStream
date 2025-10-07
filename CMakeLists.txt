@@ -77,10 +77,10 @@ endif()
 
 # Benchmarks
 if(HYPERSTREAM_ENABLE_BENCHMARKS)
-  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i686|i386")
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i686|i386|aarch64|arm64")
     add_subdirectory(benchmarks)
   else()
-    message(STATUS "Skipping benchmarks on non-x86 platform: ${CMAKE_SYSTEM_PROCESSOR}")
+    message(STATUS "Skipping benchmarks on unsupported arch: ${CMAKE_SYSTEM_PROCESSOR}")
   endif()
 endif()
 

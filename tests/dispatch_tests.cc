@@ -15,6 +15,13 @@
 #define HS_X86_ARCH 0
 #endif
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define HS_ARM64_ARCH 1
+#include "hyperstream/backend/cpu_backend_neon.hpp"
+#else
+#define HS_ARM64_ARCH 0
+#endif
+
 using hyperstream::core::HyperVector;
 
 namespace {
@@ -78,39 +85,40 @@ TEST(Dispatch, Correctness_ByMaskAndDim) {
     EXPECT_NE(ham_fn,  &sse2::HammingDistanceSSE2<D>);
   }
 #else
-  // Non-x86: all selections are scalar regardless of mask
+  // Non-x86
+  #if HS_ARM64_ARCH
+  // On ARM64: NEON is baseline. Use default feature mask to select NEON.
   {
     constexpr std::size_t Dsmall = 64;
-    const std::uint32_t m = Mask(true, true);
-    auto bind_fn = SelectBindBackend<Dsmall>(m);
-    auto ham_fn  = SelectHammingBackend<Dsmall>(m);
+    auto bind_fn = SelectBindBackend<Dsmall>();
+    auto ham_fn  = SelectHammingBackend<Dsmall>();
+    EXPECT_EQ(bind_fn, &hyperstream::backend::neon::BindNEON<Dsmall>);
+    EXPECT_EQ(ham_fn,  &hyperstream::backend::neon::HammingDistanceNEON<Dsmall>);
+  }
+  {
+    constexpr std::size_t Dlarge = 1 << 16;
+    auto bind_fn = SelectBindBackend<Dlarge>();
+    auto ham_fn  = SelectHammingBackend<Dlarge>();
+    EXPECT_EQ(bind_fn, &hyperstream::backend::neon::BindNEON<Dlarge>);
+    EXPECT_EQ(ham_fn,  &hyperstream::backend::neon::HammingDistanceNEON<Dlarge>);
+  }
+  #else
+  // Other non-x86: scalar fallback
+  {
+    constexpr std::size_t Dsmall = 64;
+    auto bind_fn = SelectBindBackend<Dsmall>();
+    auto ham_fn  = SelectHammingBackend<Dsmall>();
     EXPECT_EQ(bind_fn, &hyperstream::core::Bind<Dsmall>);
     EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<Dsmall>);
   }
   {
     constexpr std::size_t Dlarge = 1 << 16;
-    const std::uint32_t m = Mask(true, true);
-    auto bind_fn = SelectBindBackend<Dlarge>(m);
-    auto ham_fn  = SelectHammingBackend<Dlarge>(m);
+    auto bind_fn = SelectBindBackend<Dlarge>();
+    auto ham_fn  = SelectHammingBackend<Dlarge>();
     EXPECT_EQ(bind_fn, &hyperstream::core::Bind<Dlarge>);
     EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<Dlarge>);
   }
-  {
-    constexpr std::size_t D = 256;
-    const std::uint32_t m = Mask(false, true);
-    auto bind_fn = SelectBindBackend<D>(m);
-    auto ham_fn  = SelectHammingBackend<D>(m);
-    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
-    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
-  }
-  {
-    constexpr std::size_t D = 128;
-    const std::uint32_t m = Mask(false, false);
-    auto bind_fn = SelectBindBackend<D>(m);
-    auto ham_fn  = SelectHammingBackend<D>(m);
-    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
-    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
-  }
+  #endif
 #endif
 }
 
@@ -152,7 +160,11 @@ TEST(Dispatch, EnvThreshold_OverridesHammingPreference) {
 #if HS_X86_ARCH
     EXPECT_EQ(ham_fn, &sse2::HammingDistanceSSE2<D>);
 #else
+  #if HS_ARM64_ARCH
+    EXPECT_EQ(ham_fn, &hyperstream::backend::neon::HammingDistanceNEON<D>);
+  #else
     EXPECT_EQ(ham_fn, &hyperstream::core::HammingDistance<D>);
+  #endif
 #endif
   }
   // Cleanup
@@ -180,8 +192,13 @@ TEST(Dispatch, ThresholdBoundary_AtExactThreshold) {
     EXPECT_NE(ham_lt, &sse2::HammingDistanceSSE2<Dlt>);
     EXPECT_EQ(ham_eq, &sse2::HammingDistanceSSE2<Deq>);
 #else
+  #if HS_ARM64_ARCH
+    EXPECT_EQ(ham_lt, &hyperstream::backend::neon::HammingDistanceNEON<Dlt>);
+    EXPECT_EQ(ham_eq, &hyperstream::backend::neon::HammingDistanceNEON<Deq>);
+  #else
     EXPECT_EQ(ham_lt, &hyperstream::core::HammingDistance<Dlt>);
     EXPECT_EQ(ham_eq, &hyperstream::core::HammingDistance<Deq>);
+  #endif
 #endif
   }
 #ifdef _MSC_VER

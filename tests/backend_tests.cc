@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <random>
+
 #include "hyperstream/backend/cpu_backend.hpp"
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
@@ -170,5 +172,36 @@ TEST(CpuBackend, AgreesWithCoreOnAwkwardDims) {
   CheckBackendCoreAgreement<10000>();
 }
 
+
+TEST(CpuBackend, AgreesWithCoreOnRandomVectors_FixedSeed) {
+  // For several dims, sample random pairs with fixed seed and verify backend==core
+  auto run_for_dim = [](auto dim_tag) {
+    constexpr std::size_t D = decltype(dim_tag)::value;
+    std::mt19937 gen(42);
+    std::bernoulli_distribution dist(0.5);
+    for (int iter = 0; iter < 40; ++iter) {
+      HyperVector<D, bool> a, b, out_core, out_backend;
+      a.Clear(); b.Clear();
+      for (std::size_t i = 0; i < D; ++i) {
+        if (dist(gen)) a.SetBit(i, true);
+        if (dist(gen)) b.SetBit(i, true);
+      }
+      // Bind
+      hyperstream::core::Bind<D>(a, b, &out_core);
+      hyperstream::backend::Bind<D>(a, b, &out_backend);
+      ASSERT_EQ(out_core.Words().size(), out_backend.Words().size());
+      for (std::size_t w = 0; w < out_core.Words().size(); ++w) {
+        EXPECT_EQ(out_core.Words()[w], out_backend.Words()[w]) << "word index " << w;
+      }
+      // Hamming
+      const auto h_core = hyperstream::core::HammingDistance<D>(a, b);
+      const auto h_back = hyperstream::backend::HammingDistance<D>(a, b);
+      EXPECT_EQ(h_core, h_back);
+    }
+  };
+  run_for_dim(std::integral_constant<std::size_t, 64>{});
+  run_for_dim(std::integral_constant<std::size_t, 256>{});
+  run_for_dim(std::integral_constant<std::size_t, 1000>{});
+}
 
 }  // namespace

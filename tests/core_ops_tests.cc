@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <random>
+
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 
@@ -113,3 +115,39 @@ TEST(BundlingBinary, SaturatingCountersDown) {
   bundler.Finalize(&out);
   for (std::size_t i = 0; i < D; ++i) EXPECT_FALSE(out.GetBit(i));
 }
+
+
+TEST(PropertyCoreOps, BindInvertibility_FixedSeed) {
+  constexpr std::size_t D = 256;
+  HyperVector<D, bool> a, key, bound, recovered;
+  a.Clear(); key.Clear();
+  std::mt19937 gen(42);
+  std::bernoulli_distribution dist(0.5);
+  for (std::size_t i = 0; i < D; ++i) {
+    if (dist(gen)) a.SetBit(i, true);
+    if (dist(gen)) key.SetBit(i, true);
+  }
+  Bind(a, key, &bound);
+  Bind(bound, key, &recovered);
+  for (std::size_t w = 0; w < recovered.Words().size(); ++w) {
+    EXPECT_EQ(recovered.Words()[w], a.Words()[w]) << "word index " << w;
+  }
+}
+
+TEST(PropertyCoreOps, HammingTriangleInequality_FixedSeed) {
+  constexpr std::size_t D = 256;
+  HyperVector<D, bool> a, b, c;
+  a.Clear(); b.Clear(); c.Clear();
+  std::mt19937 gen(42);
+  std::bernoulli_distribution dist(0.5);
+  for (std::size_t i = 0; i < D; ++i) {
+    if (dist(gen)) a.SetBit(i, true);
+    if (dist(gen)) b.SetBit(i, true);
+    if (dist(gen)) c.SetBit(i, true);
+  }
+  const auto d_ab = HammingDistance(a, b);
+  const auto d_bc = HammingDistance(b, c);
+  const auto d_ac = HammingDistance(a, c);
+  EXPECT_LE(d_ac, d_ab + d_bc);
+}
+

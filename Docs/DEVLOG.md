@@ -659,3 +659,20 @@ Notes:
   - Full suite (Release, MSVC): 45/45 tests passed (1 disabled placeholder).
 - Status
   - Task complete; next up: property-based tests with fixed seeds.
+
+
+### 2025-10-07 — Phase 3: Property-based tests (fixed seeds) — COMPLETE
+
+- Context
+  - Phase 3 Testing/CI: add property-based tests with deterministic RNG; validate backend equality.
+- Changes
+  - tests/core_ops_tests.cc:
+    - PropertyCoreOps.BindInvertibility_FixedSeed: bind(bind(a,key),key)==a for random a,key (mt19937(42)).
+    - PropertyCoreOps.HammingTriangleInequality_FixedSeed: d(a,c) <= d(a,b)+d(b,c) for random a,b,c.
+  - tests/backend_tests.cc:
+    - CpuBackend.AgreesWithCoreOnRandomVectors_FixedSeed: backend Bind/Hamming equal to core across dims {64,256,1000}, 40 iters, mt19937(42).
+- Validation
+  - Target runs: new tests passed in isolation.
+  - Full suite (Release, MSVC): 48/48 tests passed (1 disabled placeholder).
+- Status
+  - Task complete; Phase 3 remains IN_PROGRESS.

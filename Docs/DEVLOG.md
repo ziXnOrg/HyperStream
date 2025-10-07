@@ -632,3 +632,16 @@ Notes:
     - Re-enable/harden benches on all platforms (scalar-only on non-x86); add warmup + multi-sample stats; JSON/NDJSON output.
     - README: Design/Performance (runtime dispatch, unaligned SIMD IO, tail-bit masking).
     - Docs: associative memory capacity/eviction/thread-safety; note unaligned load/store assumption in SSE2/AVX2 headers.
+
+### 2025-10-07 — Phase 3: PrototypeMemory default_label test — COMPLETE
+
+- Context
+  - Phase 3 Testing/CI: add deterministic, edge-case tests without changing product behavior.
+- Changes
+  - tests/associative_tests.cc: added `PrototypeMemory.ClassifyReturnsDefaultLabelWhenEmpty`.
+    - Constructs empty PrototypeMemory and verifies `Classify(query, default_label)` returns the provided default when size()==0.
+- Validation
+  - Built associative_tests target and ran the single test: passed.
+  - Full suite (Release, MSVC): 43/43 tests passed (1 disabled placeholder).
+- Status
+  - Task complete; proceed to Capacity=0 behavior tests next.

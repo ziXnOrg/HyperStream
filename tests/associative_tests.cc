@@ -36,6 +36,23 @@ TEST(PrototypeMemory, ClassifiesNearestNeighbor) {
   EXPECT_EQ(memory.Classify(query, 0), 1u);
 }
 
+TEST(PrototypeMemory, ClassifyReturnsDefaultLabelWhenEmpty) {
+  static constexpr std::size_t kDim = 64;
+  static constexpr std::size_t kCap = 4;
+  PrototypeMemory<kDim, kCap> memory;
+
+  // No Learn() calls; memory is empty
+  ASSERT_EQ(memory.size(), 0u);
+
+  HyperVector<kDim, bool> query;
+  query.Clear();
+  query.SetBit(3, true);  // arbitrary, should not matter for empty memory
+
+  const std::uint64_t kDefault = 12345u;
+  EXPECT_EQ(memory.Classify(query, kDefault), kDefault);
+}
+
+
 TEST(ClusterMemory, UpdateAndFinalizeReflectsMajority) {
   static constexpr std::size_t kDim = 32;
   static constexpr std::size_t kCap = 2;

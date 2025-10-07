@@ -11,8 +11,13 @@
 #include "hyperstream/config.hpp"
 #include "hyperstream/backend/capability.hpp"
 #include "hyperstream/core/ops.hpp"
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 #include "hyperstream/backend/cpu_backend_sse2.hpp"
 #include "hyperstream/backend/cpu_backend_avx2.hpp"
+#define HS_X86_ARCH 1
+#else
+#define HS_X86_ARCH 0
+#endif
 
 namespace hyperstream {
 namespace backend {
@@ -119,23 +124,33 @@ inline constexpr int BackendOverrideTag() {
 // Select Bind implementation using decision helper
 template <std::size_t Dim>
 inline BindFn<Dim> SelectBindBackend(std::uint32_t feature_mask = GetCpuFeatureMask()) {
+#if HS_X86_ARCH
   const auto d = detail::DecideBind(Dim, feature_mask);
   switch (d.kind) {
     case BackendKind::AVX2: return &avx2::BindAVX2<Dim>;
     case BackendKind::SSE2: return &sse2::BindSSE2<Dim>;
     default: return &core::Bind<Dim>;
   }
+#else
+  (void)feature_mask; // non-x86: always scalar
+  return &core::Bind<Dim>;
+#endif
 }
 
 // Select Hamming distance implementation using decision helper
 template <std::size_t Dim>
 inline HammingFn<Dim> SelectHammingBackend(std::uint32_t feature_mask = GetCpuFeatureMask()) {
+#if HS_X86_ARCH
   const auto d = detail::DecideHamming(Dim, feature_mask);
   switch (d.kind) {
     case BackendKind::AVX2: return &avx2::HammingDistanceAVX2<Dim>;
     case BackendKind::SSE2: return &sse2::HammingDistanceSSE2<Dim>;
     default: return &core::HammingDistance<Dim>;
   }
+#else
+  (void)feature_mask; // non-x86: always scalar
+  return &core::HammingDistance<Dim>;
+#endif
 }
 
 // Policy report

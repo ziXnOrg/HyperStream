@@ -11,6 +11,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(HYPERSTREAM_ENABLE_TESTS "Build tests" ON)
 option(HYPERSTREAM_ENABLE_BENCHMARKS "Build benchmarks" ON)
 
+
+# Global force-scalar switch: when enabled, define HYPERSTREAM_FORCE_SCALAR for all targets
+option(HYPERSTREAM_FORCE_SCALAR "Force scalar backends at compile time across all targets" OFF)
+if(HYPERSTREAM_FORCE_SCALAR)
+  add_compile_definitions(HYPERSTREAM_FORCE_SCALAR=1)
+endif()
+
 # Compiler warnings: strict, fail on warnings
 if(MSVC)
   add_compile_options(/W4 /WX)
@@ -26,8 +33,8 @@ endif()
 # Header-only interface target for HyperStream core
 add_library(hyperstream INTERFACE)
 
-# MSVC-only: add per-ISA object libraries and aggregate static lib for linking
-if(MSVC)
+# MSVC-only (x86/x64): add per-ISA object libraries and aggregate static lib for linking
+if(MSVC AND (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i686|i386"))
   file(GLOB HS_SSE2_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/*sse2.cpp)
   file(GLOB HS_AVX2_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/*avx2.cpp)
 
@@ -70,7 +77,11 @@ endif()
 
 # Benchmarks
 if(HYPERSTREAM_ENABLE_BENCHMARKS)
-  add_subdirectory(benchmarks)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i686|i386")
+    add_subdirectory(benchmarks)
+  else()
+    message(STATUS "Skipping benchmarks on non-x86 platform: ${CMAKE_SYSTEM_PROCESSOR}")
+  endif()
 endif()
 
 

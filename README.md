@@ -76,6 +76,31 @@ HyperStream builds universal binaries and selects SIMD backends at runtime to av
 
 See Runtime Dispatch Architecture (Docs/Runtime_Dispatch.md) for details on SIMD backend selection and adding new ISA support.
 
+## Design and Performance
+
+- Runtime dispatch (portable by default)
+  - Universal binaries select SIMD backends at runtime; see Docs/Runtime_Dispatch.md for details.
+  - Bind prefers AVX2 → SSE2 → Scalar when available; Hamming prefers AVX2 at small/medium dims and SSE2 beyond a threshold.
+
+- Safety invariants
+  - No illegal-instruction hazards: code paths are guarded by feature checks.
+  - Scalar fallback: set HYPERSTREAM_FORCE_SCALAR to force portable paths end-to-end.
+
+- Memory access and tails
+  - Unaligned IO: SIMD kernels use loadu/storeu; no special alignment is required at API boundaries.
+  - Tail safety: remaining bits/words are handled safely using scalar operations/masking.
+
+- Performance guidelines
+  - Binary ops are word-wise; sustained throughput is often memory-bound at large dimensions.
+  - Hamming threshold: default 16384; override via HYPERSTREAM_HAMMING_SSE2_THRESHOLD.
+  - Non-temporal stores (where applicable) are guarded by conservative heuristics; defaults favor stability across hosts.
+
+- Inspect selection and profile
+  - Use benchmarks/config_bench to print CPU features, selected backends, thresholds, and footprints.
+  - CI includes checks for default policy, env override, scalar-forced mode, and AVX2 preference on x86.
+
+For a deeper dive (ISA codegen strategies, adding new ISAs, CI matrix), see Docs/Runtime_Dispatch.md.
+
 ## Memory footprint helpers
 
 Constexpr helpers estimate storage requirements for common structures.

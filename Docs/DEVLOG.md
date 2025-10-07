@@ -692,3 +692,15 @@ Notes:
   - CI: existing jobs unchanged and expected to remain green; avx2-check runs on x86 runners.
 - Status
   - Task complete; Phase 3 remains IN_PROGRESS.
+
+
+### 2025-10-07 — Phase 4: README Design/Performance section — COMPLETE
+
+- Context
+  - Add user-facing documentation summarizing runtime dispatch, unaligned IO invariants, tail handling, and performance guidelines; link to Docs/Runtime_Dispatch.md.
+- Changes
+  - README.md: new "Design and Performance" section after Runtime dispatch architecture.
+- Validation
+  - Markdown renders cleanly; no build/test changes.
+- Status
+  - Task complete; Phase 4 remains IN_PROGRESS.

@@ -217,3 +217,23 @@ else()
 endif()
 
 gtest_discover_tests(policy_tests)
+
+
+# Property-based dispatch invariants
+add_executable(dispatch_property_tests
+  dispatch_property_tests.cc
+)
+
+if(MSVC)
+  target_compile_options(dispatch_property_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(dispatch_property_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+target_link_libraries(dispatch_property_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+gtest_discover_tests(dispatch_property_tests)

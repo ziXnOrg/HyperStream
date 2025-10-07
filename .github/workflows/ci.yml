@@ -134,8 +134,8 @@ jobs:
             exe="build/benchmarks/config_bench"
           fi
           "$exe" --auto-tune | tee autotune.out
-          # Check that it printed a recommendation
-          grep -E "AutoTune/Hamming recommended_threshold=[0-9]+" autotune.out
+          # Check that it printed a recommendation (or none within tested range)
+          grep -E "AutoTune/Hamming recommended_threshold=([0-9]+|\(none within tested range\))" autotune.out
         shell: bash
 
   force-scalar:

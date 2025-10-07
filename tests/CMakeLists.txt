@@ -26,6 +26,44 @@ endif()
 include(GoogleTest)
 gtest_discover_tests(core_ops_tests)
 
+add_executable(dispatch_tests
+  dispatch_tests.cc
+)
+
+target_link_libraries(dispatch_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(dispatch_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(dispatch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(dispatch_tests)
+
+add_executable(forced_scalar_tests
+  forced_scalar_tests.cc
+)
+
+target_compile_definitions(forced_scalar_tests PRIVATE HYPERSTREAM_FORCE_SCALAR=1)
+
+target_link_libraries(forced_scalar_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(forced_scalar_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(forced_scalar_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(forced_scalar_tests)
+
 add_executable(encoding_tests
   encoding_tests.cc
 )

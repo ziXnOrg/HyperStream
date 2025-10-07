@@ -78,19 +78,18 @@ inline Decision DecideBind(std::size_t dim, std::uint32_t mask) {
 #if defined(HYPERSTREAM_FORCE_SCALAR)
   (void)mask; return {BackendKind::Scalar, "forced scalar"};
 #else
-#if defined(__AVX2__)
   if (HasFeature(mask, CpuFeature::AVX2)) return {BackendKind::AVX2, "wider vectors (256b)"};
-#endif
   if (HasFeature(mask, CpuFeature::SSE2)) return {BackendKind::SSE2, "SSE2 available"};
   return {BackendKind::Scalar, "no SIMD detected"};
 #endif
 }
 
 inline Decision DecideHamming(std::size_t dim, std::uint32_t mask) {
+  // Silence MSVC C4100 in compilation modes where dim/mask are not used
+  (void)dim; (void)mask;
 #if defined(HYPERSTREAM_FORCE_SCALAR)
-  (void)dim; (void)mask; return {BackendKind::Scalar, "forced scalar"};
+  return {BackendKind::Scalar, "forced scalar"};
 #else
-#if defined(__AVX2__)
   if (HasFeature(mask, CpuFeature::AVX2)) {
     const std::size_t thr = GetHammingThreshold();
     if (dim >= thr && HasFeature(mask, CpuFeature::SSE2)) {
@@ -98,7 +97,6 @@ inline Decision DecideHamming(std::size_t dim, std::uint32_t mask) {
     }
     return {BackendKind::AVX2, "wider vectors (256b)"};
   }
-#endif
   if (HasFeature(mask, CpuFeature::SSE2)) return {BackendKind::SSE2, "SSE2 available"};
   return {BackendKind::Scalar, "no SIMD detected"};
 #endif

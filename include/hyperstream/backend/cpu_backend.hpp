@@ -10,6 +10,14 @@
 
 #include "hyperstream/core/hypervector.hpp"
 
+#if defined(__AVX2__)
+#include "hyperstream/backend/cpu_backend_avx2.hpp"
+#endif
+
+#if defined(__SSE2__) || defined(_M_X64) || defined(__x86_64__)
+#include "hyperstream/backend/cpu_backend_sse2.hpp"
+#endif
+
 namespace hyperstream {
 namespace backend {
 
@@ -85,8 +93,8 @@ std::size_t HammingDistanceScalar(const core::HyperVector<Dim, bool>& a,
   return dist;
 }
 
-// Forward declare SIMD namespaces and functions
-namespace hyperstream { namespace backend { namespace avx2 {
+// Forward declare SIMD namespaces and functions (relative to current namespace)
+namespace avx2 {
 template <size_t Dim> void BindAVX2(
     const core::HyperVector<Dim, bool>& a,
     const core::HyperVector<Dim, bool>& b,
@@ -95,9 +103,9 @@ template <size_t Dim> void BindAVX2(
 template <size_t Dim> size_t HammingDistanceAVX2(
     const core::HyperVector<Dim, bool>& a,
     const core::HyperVector<Dim, bool>& b);
-}}}  // namespace hyperstream::backend::avx2
+}  // namespace avx2
 
-namespace hyperstream { namespace backend { namespace sse2 {
+namespace sse2 {
 template <size_t Dim> void BindSSE2(
     const core::HyperVector<Dim, bool>& a,
     const core::HyperVector<Dim, bool>& b,
@@ -106,16 +114,8 @@ template <size_t Dim> void BindSSE2(
 template <size_t Dim> size_t HammingDistanceSSE2(
     const core::HyperVector<Dim, bool>& a,
     const core::HyperVector<Dim, bool>& b);
-}}}  // namespace hyperstream::backend::sse2
+}  // namespace sse2
 
-// Include SIMD implementations (compile-time guarded).
-#if defined(__AVX2__)
-#include "hyperstream/backend/cpu_backend_avx2.hpp"
-#endif
-
-#if defined(__SSE2__) || defined(_M_X64) || defined(__x86_64__)
-#include "hyperstream/backend/cpu_backend_sse2.hpp"
-#endif
 
 // Public interface: dispatches to optimal implementation based on runtime detection.
 template <std::size_t Dim>

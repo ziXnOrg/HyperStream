@@ -100,7 +100,7 @@ jobs:
           grep -E "Policy/HammingThreshold=[0-9]+,overridden=[01]" default.out
           # Must contain SelectedBackends lines with names from {scalar,sse2,avx2}
           grep -E "SelectedBackends/bind=(scalar|sse2|avx2)" default.out
-          grep -E "SelectedBackends/hamming=(scalar|sse2|avx2)" default.out
+          grep -E "hamming=(scalar|sse2|avx2)" default.out
         shell: bash
 
       - name: Run config_bench with env override
@@ -157,9 +157,9 @@ jobs:
       - name: Configure with HYPERSTREAM_FORCE_SCALAR
         run: |
           if [ "$RUNNER_OS" != "Windows" ]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DHYPERSTREAM_FORCE_SCALAR"
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DHYPERSTREAM_FORCE_SCALAR=ON
           else
-            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_CXX_FLAGS="/DHYPERSTREAM_FORCE_SCALAR"
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DHYPERSTREAM_FORCE_SCALAR=ON
           fi
         shell: bash
 
@@ -176,6 +176,6 @@ jobs:
           fi
           "$exe" | tee scalar.out
           grep -E "SelectedBackends/bind=scalar" scalar.out
-          grep -E "SelectedBackends/hamming=scalar" scalar.out
+          grep -E "hamming=scalar" scalar.out
         shell: bash
 

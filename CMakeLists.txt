@@ -11,6 +11,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(HYPERSTREAM_ENABLE_TESTS "Build tests" ON)
 option(HYPERSTREAM_ENABLE_BENCHMARKS "Build benchmarks" ON)
 
+
+# Global force-scalar switch: when enabled, define HYPERSTREAM_FORCE_SCALAR for all targets
+option(HYPERSTREAM_FORCE_SCALAR "Force scalar backends at compile time across all targets" OFF)
+if(HYPERSTREAM_FORCE_SCALAR)
+  add_compile_definitions(HYPERSTREAM_FORCE_SCALAR=1)
+endif()
+
 # Compiler warnings: strict, fail on warnings
 if(MSVC)
   add_compile_options(/W4 /WX)

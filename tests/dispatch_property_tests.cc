@@ -34,7 +34,7 @@ static void FillRandom(HyperVector<D, bool>& hv, std::mt19937& rng) {
 // Execute invariants and small executions for a single dimension D
 template <std::size_t D>
 static void CheckOneDim() {
-  const std::size_t thr = GetHammingThreshold();
+
   const std::array<std::uint32_t, 4> masks = {MaskNone(), MaskSSE2(), MaskAVX2(), MaskBoth()};
 
   for (std::uint32_t m : masks) {
@@ -45,10 +45,10 @@ static void CheckOneDim() {
     ASSERT_NE(bind_fn, nullptr);
     ASSERT_NE(ham_fn,  nullptr);
 
+#if HS_X86_ARCH
     const bool has_sse2 = HasFeature(m, CpuFeature::SSE2);
     const bool has_avx2 = HasFeature(m, CpuFeature::AVX2);
-
-#if HS_X86_ARCH
+    const std::size_t thr = GetHammingThreshold();
     // Masking invariants
     if (!has_avx2) {
       EXPECT_NE(bind_fn, &avx2::BindAVX2<D>);

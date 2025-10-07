@@ -1,6 +1,6 @@
 # HyperStream
 
-High-performance, header-only C++ library for Hyperdimensional Computing (HDC). HyperStream provides binary hypervectors, SIMD-accelerated kernels (SSE2/AVX2), adaptive runtime backend selection, and a focused test/benchmark suite.
+High-performance, header-only C++ library for Hyperdimensional Computing (HDC). HyperStream provides binary hypervectors, SIMD-accelerated kernels (SSE2/AVX2), adaptive runtime backend selection, associative memory data structures, and a streaming classification framework.
 
 - Header-only, C++17
 - Cross-platform: Windows, Linux, macOS
@@ -47,15 +47,13 @@ Optional: quick auto-tuning of Hamming backend threshold for your host.
 
 HyperStream chooses backends at runtime based on the CPU and simple heuristics. You can query decisions via the policy report API.
 
-<augment_code_snippet mode="EXCERPT">
-````cpp
+```cpp
 #include "hyperstream/backend/policy.hpp"
 
 constexpr std::size_t D = 10000;
 auto rep = hyperstream::backend::Report<D>();
 // rep.bind_kind, rep.hamming_kind, and reason strings
-````
-</augment_code_snippet>
+```
 
 ### Environment overrides
 
@@ -76,15 +74,13 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DHYPERSTREAM_
 
 Constexpr helpers estimate storage requirements for common structures.
 
-<augment_code_snippet mode="EXCERPT">
-````cpp
+```cpp
 #include "hyperstream/config.hpp"
 using namespace hyperstream::config;
 
 constexpr std::size_t d = 10000;
 auto hv_bytes = BinaryHyperVectorStorageBytes(d);
-````
-</augment_code_snippet>
+```
 
 ## Benchmarks
 
@@ -113,4 +109,3 @@ Issues and pull requests are welcome. Please run the full test suite and ensure 
 This repository is set up with GitHub Actions to build on Windows, Linux, and macOS, run tests, validate policy output, and verify scalar fallback.
 
 [![CI](https://github.com/ziXnOrg/HyperStream/actions/workflows/ci.yml/badge.svg)](https://github.com/ziXnOrg/HyperStream/actions/workflows/ci.yml)
-

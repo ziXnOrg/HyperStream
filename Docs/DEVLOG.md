@@ -704,3 +704,31 @@ Notes:
   - Markdown renders cleanly; no build/test changes.
 - Status
   - Task complete; Phase 4 remains IN_PROGRESS.
+
+### 2025-10-07 — Phase 4: Backend/Associative docs + Bench warmup/NDJSON — COMPLETE
+
+- Context
+  - Phase 4 tasks A/B/C: document SIMD backend invariants; document associative memories; enhance benchmarks with warmup, multi-sample, and NDJSON.
+
+- Changes
+  - Backend docs (headers):
+    - include/hyperstream/backend/cpu_backend_sse2.hpp and cpu_backend_avx2.hpp
+      - Added top-of-file invariant blocks: unaligned load/store semantics (loadu/storeu), contiguous uint64_t layout via HyperVector::Words(), safe tail handling via final-word mask, compiler target attributes policy (GCC/Clang function-level; MSVC in .cpp).
+      - Added Doxygen for BindWords()/HammingWords() parameters and semantics.
+  - Associative memory docs:
+    - include/hyperstream/memory/associative.hpp: class-level Doxygen for PrototypeMemory, ClusterMemory, CleanupMemory covering: fixed Capacity with no eviction, size()==0 behavior, Capacity==0 behavior, not thread-safe (external synchronization required), and complexity for Learn/Update/Classify/Finalize.
+  - Benchmarks:
+    - benchmarks/am_bench.cpp and benchmarks/cluster_bench.cpp
+      - Added CLI flags: --warmup_ms, --measure_ms, --samples, --json.
+      - Implemented warmup phase (optional) before measurement; default warmup_ms=0 to preserve legacy behavior.
+      - Multi-sample runs with mean/median/stdev aggregate; NDJSON mode emits one JSON object per sample (+ optional aggregate).
+      - Backward compatibility: when flags omitted, output format and timings remain unchanged; default measure_ms matches previous (AM=300ms, Cluster=150ms).
+
+- Validation
+  - Local MSVC Release build OK; no new warnings.
+  - am_bench: verified CSV default output unchanged; with --json --samples=3, NDJSON lines parse and include expected fields.
+  - cluster_bench: default path preserved (config + default line + metrics); NDJSON validated similarly.
+
+- Status
+  - Phase 4 tasks A/B/C: COMPLETE.
+

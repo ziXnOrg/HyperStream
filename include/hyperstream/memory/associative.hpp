@@ -13,9 +13,22 @@
 namespace hyperstream {
 namespace memory {
 
-// Prototype associative memory.
-// Stores up to Capacity labeled hypervectors and performs nearest-neighbor lookup
-// using Hamming similarity. No dynamic allocation; all storage is pre-sized.
+/**
+ * @brief Fixed-capacity prototype associative memory (nearest neighbour by Hamming).
+ *
+ * @tparam Dim     Hypervector dimension (bits)
+ * @tparam Capacity Maximum number of (prototype,label) entries; no eviction policy.
+ *
+ * Invariants and behavior:
+ * - Capacity is fixed at compile time; Learn() returns false when full (no eviction or replacement).
+ * - When size()==0, Classify() returns the provided default_label (no computation performed).
+ * - If Capacity==0, all mutating operations fail and size() remains 0 (compile-time constant capacity).
+ * - Thread-safety: not thread-safe. External synchronization is required for concurrent access.
+ *
+ * Complexity (binary HyperVector):
+ * - Learn: O(1) append
+ * - Classify: O(size * Dim/64) Hamming distance over packed uint64_t words
+ */
 template <std::size_t Dim, std::size_t Capacity>
 class PrototypeMemory {
  public:
@@ -89,8 +102,22 @@ class PrototypeMemory {
   std::size_t size_ = 0;
 };
 
-// Cluster memory with decay. Maintains additive counters per bit and label,
-// thresholding back to binary on demand. Decay is applied by scaling counters.
+/**
+ * @brief Fixed-capacity cluster memory with additive counters and thresholding.
+ *
+ * @tparam Dim      Hypervector dimension (bits)
+ * @tparam Capacity Maximum number of clusters; no eviction policy.
+ *
+ * Invariants and behavior:
+ * - Capacity is fixed at compile time; Update() returns false when full.
+ * - When size()==0, Finalize() produces an all-zero vector; no-op for unknown label.
+ * - If Capacity==0, all mutating operations fail and size() remains 0.
+ * - Thread-safety: not thread-safe. External synchronization is required.
+ *
+ * Complexity:
+ * - Update:   O(Dim) to adjust counters per bit
+ * - Finalize: O(Dim) to threshold counters into a binary HyperVector
+ */
 template <std::size_t Dim, std::size_t Capacity>
 class ClusterMemory {
  public:
@@ -123,7 +150,7 @@ class ClusterMemory {
     for (std::size_t i = 0; i < size_; ++i) {
       for (std::size_t bit = 0; bit < Dim; ++bit) {
         const std::size_t idx = i * Dim + bit;
-      sums_[idx] = static_cast<int>(static_cast<float>(sums_[idx]) * decay_factor);
+        sums_[idx] = static_cast<int>(static_cast<float>(sums_[idx]) * decay_factor);
       }
       counts_[i] = static_cast<int>(static_cast<float>(counts_[i]) * decay_factor);
     }
@@ -160,9 +187,22 @@ class ClusterMemory {
   std::size_t size_ = 0;
 };
 
-// Cleanup memory: dictionary of canonical hypervectors. Restores noisy inputs
-// by returning the nearest stored vector. Falls back to caller-provided vector
-// when dictionary is empty.
+/**
+ * @brief Fixed-capacity cleanup memory (dictionary) restoring to nearest stored vector.
+ *
+ * @tparam Dim      Hypervector dimension (bits)
+ * @tparam Capacity Maximum number of stored items; no eviction policy.
+ *
+ * Invariants and behavior:
+ * - Capacity is fixed at compile time; Insert() returns false when full.
+ * - When size()==0, Restore() returns the caller-provided fallback.
+ * - If Capacity==0, all mutating operations fail and size() remains 0.
+ * - Thread-safety: not thread-safe. External synchronization is required.
+ *
+ * Complexity:
+ * - Insert:  O(1)
+ * - Restore: O(size * Dim/64) Hamming distance over packed uint64_t words
+ */
 template <std::size_t Dim, std::size_t Capacity>
 class CleanupMemory {
  public:

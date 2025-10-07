@@ -6,6 +6,17 @@
 // AVX2-accelerated backend primitives for x86-64 platforms.
 // Implements Bind (XOR) and Hamming distance using 256-bit SIMD operations.
 // Harley-Seal algorithm for efficient popcount. Requires AVX2 CPU support.
+//
+// Invariants and I/O contract for HyperStream SIMD backends:
+// - Unaligned memory semantics: all vector loads/stores use loadu/storeu; callers need not ensure
+//   32-byte alignment. Implementations may opportunistically use aligned ops internally when safe.
+// - Contiguous word layout: HyperVector<Dim,bool>::Words() exposes a contiguous array of uint64_t
+//   words representing the bit-packed hypervector. Functions here operate exclusively on that layout.
+// - Safe tail handling: Dimensions that are not multiples of 64 bits are handled by masking the
+//   final word in the HyperVector representation; SIMD loops process full words and scalar-tail code
+//   completes the remainder.
+// - Compiler targets: On GCC/Clang we use function-level target attributes ("avx2"). On MSVC, the
+//   raw ISA entry points are provided from .cpp translation units compiled with /arch:AVX2.
 
 #include <cstddef>
 #include <cstdint>
@@ -18,9 +29,19 @@ namespace hyperstream {
 namespace backend {
 namespace avx2 {
 
-// Raw AVX2 entry points operating on 64-bit words. Unaligned load/store used.
-// For GCC/Clang these are defined with function-level target attributes; on MSVC they are defined in .cpp TUs.
+/// @brief XOR-bind two arrays of 64-bit words using AVX2 with unaligned IO.
+/// @param a Pointer to first input array (size: word_count)
+/// @param b Pointer to second input array (size: word_count)
+/// @param out Pointer to output array (size: word_count)
+/// @param word_count Number of 64-bit words to process
+/// @note Uses _mm256_loadu_si256/_mm256_storeu_si256; no alignment preconditions.
 void BindWords(const std::uint64_t* a, const std::uint64_t* b, std::uint64_t* out, std::size_t word_count);
+
+/// @brief Compute Hamming distance between two word arrays using AVX2 with unaligned IO.
+/// @param a Pointer to first input array (size: word_count)
+/// @param b Pointer to second input array (size: word_count)
+/// @param word_count Number of 64-bit words to process
+/// @return Total number of differing bits across all words
 std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b, std::size_t word_count);
 
 // Harley-Seal popcount for __m256i (256-bit vector).

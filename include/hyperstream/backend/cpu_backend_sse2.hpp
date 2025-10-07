@@ -6,6 +6,17 @@
 // SSE2-accelerated backend primitives for x86-64 platforms.
 // Provides fallback when AVX2 is unavailable. Uses 128-bit SIMD operations.
 // Compatible with all x86-64 CPUs (SSE2 mandatory since AMD64/Intel 64).
+//
+// Invariants and I/O contract for HyperStream SIMD backends:
+// - Unaligned memory semantics: all vector loads/stores use loadu/storeu; callers need not ensure
+//   16-byte alignment. Implementations may opportunistically use aligned ops internally when safe.
+// - Contiguous word layout: HyperVector<Dim,bool>::Words() exposes a contiguous array of uint64_t
+//   words representing the bit-packed hypervector. Functions here operate exclusively on that layout.
+// - Safe tail handling: Dimensions that are not multiples of 64 bits are handled by masking the
+//   final word in the HyperVector representation; SIMD loops process full words and scalar-tail code
+//   completes the remainder.
+// - Compiler targets: On GCC/Clang we use function-level target attributes ("sse2"). On MSVC, the
+//   raw ISA entry points are provided from .cpp translation units compiled with /arch:SSE2.
 
 #include <cstddef>
 #include <cstdint>
@@ -17,9 +28,19 @@ namespace hyperstream {
 namespace backend {
 namespace sse2 {
 
-// Raw SSE2 entry points operating on 64-bit words. Unaligned loads/stores are used (loadu/storeu).
-// For GCC/Clang these are defined with function-level target attributes; on MSVC they are defined in .cpp TUs.
+/// @brief XOR-bind two arrays of 64-bit words using SSE2 with unaligned IO.
+/// @param a Pointer to first input array (size: word_count)
+/// @param b Pointer to second input array (size: word_count)
+/// @param out Pointer to output array (size: word_count)
+/// @param word_count Number of 64-bit words to process
+/// @note Uses _mm_loadu_si128/_mm_storeu_si128; no alignment preconditions.
 void BindWords(const std::uint64_t* a, const std::uint64_t* b, std::uint64_t* out, std::size_t word_count);
+
+/// @brief Compute Hamming distance between two word arrays using SSE2 with unaligned IO.
+/// @param a Pointer to first input array (size: word_count)
+/// @param b Pointer to second input array (size: word_count)
+/// @param word_count Number of 64-bit words to process
+/// @return Total number of differing bits across all words
 std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b, std::size_t word_count);
 
 #if defined(__GNUC__) || defined(__clang__)

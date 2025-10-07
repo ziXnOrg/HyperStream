@@ -70,7 +70,11 @@ endif()
 
 # Benchmarks
 if(HYPERSTREAM_ENABLE_BENCHMARKS)
-  add_subdirectory(benchmarks)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i686|i386")
+    add_subdirectory(benchmarks)
+  else()
+    message(STATUS "Skipping benchmarks on non-x86 platform: ${CMAKE_SYSTEM_PROCESSOR}")
+  endif()
 endif()
 
 

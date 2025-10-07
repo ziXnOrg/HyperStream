@@ -25,7 +25,11 @@ std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b, std::si
 
 // Harley-Seal popcount for __m256i (256-bit vector).
 // Uses CSA (Carry-Save Adder) approach to count bits in parallel.
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((target("avx2"))) inline std::uint64_t Popcount256(__m256i v) {
+#else
 inline std::uint64_t Popcount256(__m256i v) {
+#endif
   // Step 1: Count bits in each byte using SSSE3 lookup table approach.
   const __m256i lookup = _mm256_setr_epi8(0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 0, 1, 1,
                                           2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4);

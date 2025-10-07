@@ -26,8 +26,8 @@ endif()
 # Header-only interface target for HyperStream core
 add_library(hyperstream INTERFACE)
 
-# MSVC-only: add per-ISA object libraries and aggregate static lib for linking
-if(MSVC)
+# MSVC-only (x86/x64): add per-ISA object libraries and aggregate static lib for linking
+if(MSVC AND (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i686|i386"))
   file(GLOB HS_SSE2_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/*sse2.cpp)
   file(GLOB HS_AVX2_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/*avx2.cpp)
 

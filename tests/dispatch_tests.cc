@@ -8,6 +8,13 @@
 #include "hyperstream/backend/capability.hpp"
 #include "hyperstream/core/hypervector.hpp"
 
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#define HS_X86_ARCH 1
+#else
+#define HS_X86_ARCH 0
+#endif
+
 using hyperstream::core::HyperVector;
 
 namespace {
@@ -25,7 +32,7 @@ static std::uint32_t Mask(bool avx2, bool sse2) {
 
 TEST(Dispatch, Correctness_ByMaskAndDim) {
   using namespace hyperstream::backend;
-
+#if HS_X86_ARCH
   // AVX2 present, small dim -> should not select SSE2 or scalar for Hamming/Bind
   {
     constexpr std::size_t Dsmall = 64;
@@ -70,6 +77,41 @@ TEST(Dispatch, Correctness_ByMaskAndDim) {
     EXPECT_NE(ham_fn,  &avx2::HammingDistanceAVX2<D>);
     EXPECT_NE(ham_fn,  &sse2::HammingDistanceSSE2<D>);
   }
+#else
+  // Non-x86: all selections are scalar regardless of mask
+  {
+    constexpr std::size_t Dsmall = 64;
+    const std::uint32_t m = Mask(true, true);
+    auto bind_fn = SelectBindBackend<Dsmall>(m);
+    auto ham_fn  = SelectHammingBackend<Dsmall>(m);
+    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<Dsmall>);
+    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<Dsmall>);
+  }
+  {
+    constexpr std::size_t Dlarge = 1 << 16;
+    const std::uint32_t m = Mask(true, true);
+    auto bind_fn = SelectBindBackend<Dlarge>(m);
+    auto ham_fn  = SelectHammingBackend<Dlarge>(m);
+    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<Dlarge>);
+    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<Dlarge>);
+  }
+  {
+    constexpr std::size_t D = 256;
+    const std::uint32_t m = Mask(false, true);
+    auto bind_fn = SelectBindBackend<D>(m);
+    auto ham_fn  = SelectHammingBackend<D>(m);
+    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
+    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
+  }
+  {
+    constexpr std::size_t D = 128;
+    const std::uint32_t m = Mask(false, false);
+    auto bind_fn = SelectBindBackend<D>(m);
+    auto ham_fn  = SelectHammingBackend<D>(m);
+    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
+    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
+  }
+#endif
 }
 
 TEST(Dispatch, NoIllegalInstructions_WhenAVX2MaskedOut) {
@@ -80,8 +122,10 @@ TEST(Dispatch, NoIllegalInstructions_WhenAVX2MaskedOut) {
   // Ensure we don't select AVX2 functions
   auto bind_fn = SelectBindBackend<D>(m);
   auto ham_fn  = SelectHammingBackend<D>(m);
+#if HS_X86_ARCH
   EXPECT_NE(bind_fn, &avx2::BindAVX2<D>);
   EXPECT_NE(ham_fn,  &avx2::HammingDistanceAVX2<D>);
+#endif
 
   // Execute the selected functions to ensure they run correctly
   HyperVector<D, bool> a, b, out;
@@ -105,7 +149,11 @@ TEST(Dispatch, EnvThreshold_OverridesHammingPreference) {
     constexpr std::size_t D = 64;
     const std::uint32_t m = Mask(true, true);
     auto ham_fn  = SelectHammingBackend<D>(m);
+#if HS_X86_ARCH
     EXPECT_EQ(ham_fn, &sse2::HammingDistanceSSE2<D>);
+#else
+    EXPECT_EQ(ham_fn, &hyperstream::core::HammingDistance<D>);
+#endif
   }
   // Cleanup
 #ifdef _MSC_VER
@@ -128,8 +176,13 @@ TEST(Dispatch, ThresholdBoundary_AtExactThreshold) {
     const std::uint32_t m = Mask(true, true);
     auto ham_lt = SelectHammingBackend<Dlt>(m);
     auto ham_eq = SelectHammingBackend<Deq>(m);
-    EXPECT_NE(ham_lt, &sse2::HammingDistanceSSE2<Dlt>); // below threshold should not force SSE2
-    EXPECT_EQ(ham_eq, &sse2::HammingDistanceSSE2<Deq>); // at threshold selects SSE2
+#if HS_X86_ARCH
+    EXPECT_NE(ham_lt, &sse2::HammingDistanceSSE2<Dlt>);
+    EXPECT_EQ(ham_eq, &sse2::HammingDistanceSSE2<Deq>);
+#else
+    EXPECT_EQ(ham_lt, &hyperstream::core::HammingDistance<Dlt>);
+    EXPECT_EQ(ham_eq, &hyperstream::core::HammingDistance<Deq>);
+#endif
   }
 #ifdef _MSC_VER
   _putenv_s("HYPERSTREAM_HAMMING_SSE2_THRESHOLD", "");

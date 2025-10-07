@@ -1,5 +1,8 @@
 #pragma once
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+
+
 // SSE2-accelerated backend primitives for x86-64 platforms.
 // Provides fallback when AVX2 is unavailable. Uses 128-bit SIMD operations.
 // Compatible with all x86-64 CPUs (SSE2 mandatory since AMD64/Intel 64).
@@ -72,5 +75,11 @@ std::size_t HammingDistanceSSE2(const core::HyperVector<Dim, bool>& a,
 }
 
 }  // namespace sse2
+
+
+
 }  // namespace backend
 }  // namespace hyperstream
+
+#endif // x86/x64 guard
+

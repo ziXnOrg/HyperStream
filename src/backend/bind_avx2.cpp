@@ -1,3 +1,5 @@
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+
 #include <cstddef>
 #include <cstdint>
 #include <immintrin.h>
@@ -19,4 +21,6 @@ void BindWords(const std::uint64_t* a, const std::uint64_t* b, std::uint64_t* ou
 }
 
 }}} // namespace hyperstream::backend::avx2
+#endif // x86/x64 guard
+
 

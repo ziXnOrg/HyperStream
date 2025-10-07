@@ -1,5 +1,8 @@
 #pragma once
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+
+
 // AVX2-accelerated backend primitives for x86-64 platforms.
 // Implements Bind (XOR) and Hamming distance using 256-bit SIMD operations.
 // Harley-Seal algorithm for efficient popcount. Requires AVX2 CPU support.
@@ -95,6 +98,12 @@ std::size_t HammingDistanceAVX2(const core::HyperVector<Dim, bool>& a,
   return HammingWords(a_words.data(), b_words.data(), a_words.size());
 }
 
+
+
+
 }  // namespace avx2
 }  // namespace backend
 }  // namespace hyperstream
+
+
+#endif // x86/x64 guard

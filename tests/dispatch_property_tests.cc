@@ -7,6 +7,12 @@
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#define HS_X86_ARCH 1
+#else
+#define HS_X86_ARCH 0
+#endif
+
 using hyperstream::core::HyperVector;
 
 namespace {
@@ -42,6 +48,7 @@ static void CheckOneDim() {
     const bool has_sse2 = HasFeature(m, CpuFeature::SSE2);
     const bool has_avx2 = HasFeature(m, CpuFeature::AVX2);
 
+#if HS_X86_ARCH
     // Masking invariants
     if (!has_avx2) {
       EXPECT_NE(bind_fn, &avx2::BindAVX2<D>);
@@ -73,6 +80,11 @@ static void CheckOneDim() {
       EXPECT_NE(bind_fn, &sse2::BindSSE2<D>);
       EXPECT_NE(bind_fn, &hyperstream::core::Bind<D>);
     }
+#else
+    // Non-x86: all selections should be scalar regardless of mask
+    EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
+    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
+#endif
 
     // Execute selected backends to ensure no illegal instruction and correct results
     std::mt19937 rng(42);

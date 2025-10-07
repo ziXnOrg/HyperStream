@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build-and-test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Configure (Unix)
+        if: runner.os != 'Windows'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: |
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            cmake --build build --config Release -j 4
+          else
+            cmake --build build --config Release --target ALL_BUILD -j 4
+          fi
+        shell: bash
+
+      - name: Test
+        run: |
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            ctest --test-dir build -C Release -j 2 --output-on-failure
+          else
+            ctest --test-dir build -C Release -j 2 --output-on-failure
+          fi
+        shell: bash
+
+  policy-check:
+    name: Policy/Capability Checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Configure default
+        run: |
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          else
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          fi
+        shell: bash
+
+      - name: Build default
+        run: |
+          cmake --build build --config Release -j 4
+        shell: bash
+
+      - name: Run config_bench (default)
+        id: run_default
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            exe="build/benchmarks/Release/config_bench.exe"
+            cmd="$exe"
+          else
+            exe="build/benchmarks/config_bench"
+            cmd="$exe"
+          fi
+          echo "Using: $exe"
+          $cmd | tee default.out
+        shell: bash
+
+      - name: Assert output is sane (default)
+        run: |
+          echo "--- default.out ---"
+          cat default.out
+          # Must contain policy threshold and overridden flag
+          grep -E "Policy/HammingThreshold=[0-9]+,overridden=[01]" default.out
+          # Must contain SelectedBackends lines with names from {scalar,sse2,avx2}
+          grep -E "SelectedBackends/bind=(scalar|sse2|avx2)" default.out
+          grep -E "SelectedBackends/hamming=(scalar|sse2|avx2)" default.out
+        shell: bash
+
+      - name: Run config_bench with env override
+        id: run_override
+        env:
+          HYPERSTREAM_HAMMING_SSE2_THRESHOLD: "32768"
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            exe="build/benchmarks/Release/config_bench.exe"
+            cmd="$exe"
+          else
+            exe="build/benchmarks/config_bench"
+            cmd="$exe"
+          fi
+          echo "Using: $exe with env override"
+          $cmd | tee override.out
+        shell: bash
+
+      - name: Assert override took effect
+        run: |
+          echo "--- override.out ---"
+          cat override.out
+          grep -E "Policy/HammingThreshold=32768,overridden=1" override.out
+        shell: bash
+
+      - name: Auto-tune (quick)
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            exe="build/benchmarks/Release/config_bench.exe"
+          else
+            exe="build/benchmarks/config_bench"
+          fi
+          "$exe" --auto-tune | tee autotune.out
+          # Check that it printed a recommendation
+          grep -E "AutoTune/Hamming recommended_threshold=[0-9]+" autotune.out
+        shell: bash
+
+  force-scalar:
+    name: Force Scalar (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Configure with HYPERSTREAM_FORCE_SCALAR
+        run: |
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DHYPERSTREAM_FORCE_SCALAR"
+          else
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_CXX_FLAGS="/DHYPERSTREAM_FORCE_SCALAR"
+          fi
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+        shell: bash
+
+      - name: Run config_bench and assert scalar chosen
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            exe="build/benchmarks/Release/config_bench.exe"
+          else
+            exe="build/benchmarks/config_bench"
+          fi
+          "$exe" | tee scalar.out
+          grep -E "SelectedBackends/bind=scalar" scalar.out
+          grep -E "SelectedBackends/hamming=scalar" scalar.out
+        shell: bash
+

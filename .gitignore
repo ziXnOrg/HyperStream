@@ -1,0 +1,69 @@
+# Build trees and generated files
+/build/
+/build-*/
+/cmake-build-*/
+/bin/
+/lib/
+/out/
+/dist/
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+# compilation database (re-generable)
+compile_commands.json
+
+# Visual Studio / MSVC
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.user
+.vs/
+# MSVC intermediates
+*.obj
+*.iobj
+*.ipdb
+*.idb
+*.ilk
+*.pdb
+*.exp
+
+# Compiled binaries and libraries
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+*.dylib
+*.o
+*.lo
+
+# IDE/editor
+.vscode/
+.idea/
+.clangd/
+.clang-tidy
+.cache/
+.DS_Store
+Thumbs.db
+
+# Local tools
+.windsurf/
+
+# Keep documentation private
+Docs/
+docs/
+
+# Benchmark/test runtime outputs (if any outside build/)
+benchmarks/**/Release/*
+benchmarks/**/Debug/*
+tests/**/Release/*
+tests/**/Debug/*
+

@@ -19,6 +19,7 @@ namespace backend {
 enum class CpuFeature : std::uint32_t {
   SSE2 = 0x1,
   AVX2 = 0x2,
+  NEON = 0x4,
 };
 
 inline bool HasFeature(std::uint32_t mask, CpuFeature f) {
@@ -91,6 +92,15 @@ inline bool DetectAVX2() {
 #endif
 }
 
+inline bool DetectNEON() {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  // Advanced SIMD is mandatory in AArch64
+  return true;
+#else
+  return false;
+#endif
+}
+
 inline std::uint32_t GetCpuFeatureMask() {
 #if defined(HYPERSTREAM_FORCE_SCALAR)
   return 0u;
@@ -98,6 +108,7 @@ inline std::uint32_t GetCpuFeatureMask() {
   std::uint32_t mask = 0u;
   if (DetectSSE2()) mask |= static_cast<std::uint32_t>(CpuFeature::SSE2);
   if (DetectAVX2()) mask |= static_cast<std::uint32_t>(CpuFeature::AVX2);
+  if (DetectNEON()) mask |= static_cast<std::uint32_t>(CpuFeature::NEON);
   return mask;
 #endif
 }

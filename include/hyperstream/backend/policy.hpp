@@ -11,12 +11,25 @@
 #include "hyperstream/config.hpp"
 #include "hyperstream/backend/capability.hpp"
 #include "hyperstream/core/ops.hpp"
+
+// Architecture detection
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
-#include "hyperstream/backend/cpu_backend_sse2.hpp"
-#include "hyperstream/backend/cpu_backend_avx2.hpp"
-#define HS_X86_ARCH 1
+  #define HS_X86_ARCH 1
 #else
-#define HS_X86_ARCH 0
+  #define HS_X86_ARCH 0
+#endif
+#if defined(__aarch64__) || defined(_M_ARM64)
+  #define HS_ARM64_ARCH 1
+#else
+  #define HS_ARM64_ARCH 0
+#endif
+
+#if HS_X86_ARCH
+  #include "hyperstream/backend/cpu_backend_sse2.hpp"
+  #include "hyperstream/backend/cpu_backend_avx2.hpp"
+#endif
+#if HS_ARM64_ARCH
+  #include "hyperstream/backend/cpu_backend_neon.hpp"
 #endif
 
 namespace hyperstream {
@@ -50,7 +63,7 @@ inline bool HammingThresholdOverridden() {
 }
 
 /** Kind of backend selected by the policy. */
-enum class BackendKind : std::uint8_t { Scalar=0, SSE2=1, AVX2=2 };
+enum class BackendKind : std::uint8_t { Scalar=0, SSE2=1, AVX2=2, NEON=3 };
 
 /** Returns a human-readable backend name: "scalar", "sse2", or "avx2". */
 inline const char* GetBackendName(BackendKind k) {
@@ -58,6 +71,7 @@ inline const char* GetBackendName(BackendKind k) {
     case BackendKind::Scalar: return "scalar";
     case BackendKind::SSE2:   return "sse2";
     case BackendKind::AVX2:   return "avx2";
+    case BackendKind::NEON:   return "neon";
     default: return "unknown";
   }
 }
@@ -85,6 +99,7 @@ inline Decision DecideBind(std::size_t dim, std::uint32_t mask) {
 #else
   if (HasFeature(mask, CpuFeature::AVX2)) return {BackendKind::AVX2, "wider vectors (256b)"};
   if (HasFeature(mask, CpuFeature::SSE2)) return {BackendKind::SSE2, "SSE2 available"};
+  if (HasFeature(mask, CpuFeature::NEON)) return {BackendKind::NEON, "NEON available"};
   return {BackendKind::Scalar, "no SIMD detected"};
 #endif
 }
@@ -103,6 +118,7 @@ inline Decision DecideHamming(std::size_t dim, std::uint32_t mask) {
     return {BackendKind::AVX2, "wider vectors (256b)"};
   }
   if (HasFeature(mask, CpuFeature::SSE2)) return {BackendKind::SSE2, "SSE2 available"};
+  if (HasFeature(mask, CpuFeature::NEON)) return {BackendKind::NEON, "NEON available"};
   return {BackendKind::Scalar, "no SIMD detected"};
 #endif
 }
@@ -131,8 +147,14 @@ inline BindFn<Dim> SelectBindBackend(std::uint32_t feature_mask = GetCpuFeatureM
     case BackendKind::SSE2: return &sse2::BindSSE2<Dim>;
     default: return &core::Bind<Dim>;
   }
+#elif HS_ARM64_ARCH
+  const auto d = detail::DecideBind(Dim, feature_mask);
+  switch (d.kind) {
+    case BackendKind::NEON: return &neon::BindNEON<Dim>;
+    default: return &core::Bind<Dim>;
+  }
 #else
-  (void)feature_mask; // non-x86: always scalar
+  (void)feature_mask; // other arch: scalar
   return &core::Bind<Dim>;
 #endif
 }
@@ -147,8 +169,14 @@ inline HammingFn<Dim> SelectHammingBackend(std::uint32_t feature_mask = GetCpuFe
     case BackendKind::SSE2: return &sse2::HammingDistanceSSE2<Dim>;
     default: return &core::HammingDistance<Dim>;
   }
+#elif HS_ARM64_ARCH
+  const auto d = detail::DecideHamming(Dim, feature_mask);
+  switch (d.kind) {
+    case BackendKind::NEON: return &neon::HammingDistanceNEON<Dim>;
+    default: return &core::HammingDistance<Dim>;
+  }
 #else
-  (void)feature_mask; // non-x86: always scalar
+  (void)feature_mask; // other arch: scalar
   return &core::HammingDistance<Dim>;
 #endif
 }

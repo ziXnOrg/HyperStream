@@ -1,0 +1,9 @@
+{
+  "description": "Schema lock for am_bench NDJSON rows",
+  "type": "object",
+  "required": [
+    "name","dim_bits","capacity","size","iters","secs",
+    "queries_per_sec","eff_gb_per_sec","sample_index","warmup_ms","measure_ms"
+  ]
+}
+

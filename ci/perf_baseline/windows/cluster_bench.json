@@ -1,0 +1,6 @@
+{
+  "[\"Cluster/update_finalize\",10000,16,100]": {"updates_per_sec": {"mean": 127000.0}, "finalizes_per_sec": {"mean": 28400.0}},
+  "[\"Cluster/update_finalize\",16384,16,100]": {"updates_per_sec": {"mean": 73800.0}, "finalizes_per_sec": {"mean": 15900.0}},
+  "[\"Cluster/update_finalize\",65536,16,100]": {"updates_per_sec": {"mean": 19240.0}, "finalizes_per_sec": {"mean": 3440.0}}
+}
+

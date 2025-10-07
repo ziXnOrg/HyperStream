@@ -676,3 +676,19 @@ Notes:
   - Full suite (Release, MSVC): 48/48 tests passed (1 disabled placeholder).
 - Status
   - Task complete; Phase 3 remains IN_PROGRESS.
+
+
+### 2025-10-07 — Phase 3: CI matrix update — AVX2 preference job added — COMPLETE
+
+- Context
+  - Phase 3 Testing/CI: explicitly assert AVX2 backend selection on x86 GitHub runners.
+- Changes
+  - .github/workflows/ci.yml: added `avx2-check` job (matrix: ubuntu-latest, windows-latest).
+    - Configure Release; build; run `benchmarks/config_bench`.
+    - Assert via grep: `SelectedBackends/bind=avx2` and `hamming=avx2` at dim=10000.
+    - macOS excluded (ARM).
+- Validation
+  - Local: config_bench emits lines matched by grep; policy threshold (16384) implies AVX2 for Hamming at 10k.
+  - CI: existing jobs unchanged and expected to remain green; avx2-check runs on x86 runners.
+- Status
+  - Task complete; Phase 3 remains IN_PROGRESS.

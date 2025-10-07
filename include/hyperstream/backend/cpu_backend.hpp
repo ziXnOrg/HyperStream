@@ -121,20 +121,20 @@ template <size_t Dim> size_t HammingDistanceSSE2(
 template <std::size_t Dim>
 void Bind(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim, bool>& b,
           core::HyperVector<Dim, bool>* out) {
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
   const auto& features = CpuBackend::Instance().Features();
-
-#if defined(__AVX2__)
+  #if defined(__AVX2__)
   if (features.avx2) {
     hyperstream::backend::avx2::BindAVX2(a, b, out);
     return;
   }
-#endif
-
-#if defined(__SSE2__) || defined(_M_X64) || defined(__x86_64__)
+  #endif
+  #if defined(__SSE2__) || defined(_M_X64) || defined(__x86_64__)
   if (features.sse2) {
     hyperstream::backend::sse2::BindSSE2(a, b, out);
     return;
   }
+  #endif
 #endif
 
   // Scalar fallback.
@@ -144,18 +144,18 @@ void Bind(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim, bo
 template <std::size_t Dim>
 std::size_t HammingDistance(const core::HyperVector<Dim, bool>& a,
                             const core::HyperVector<Dim, bool>& b) {
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
   const auto& features = CpuBackend::Instance().Features();
-
-#if defined(__AVX2__)
+  #if defined(__AVX2__)
   if (features.avx2) {
     return hyperstream::backend::avx2::HammingDistanceAVX2(a, b);
   }
-#endif
-
-#if defined(__SSE2__) || defined(_M_X64) || defined(__x86_64__)
+  #endif
+  #if defined(__SSE2__) || defined(_M_X64) || defined(__x86_64__)
   if (features.sse2) {
     return hyperstream::backend::sse2::HammingDistanceSSE2(a, b);
   }
+  #endif
 #endif
 
   // Scalar fallback.

@@ -645,3 +645,17 @@ Notes:
   - Full suite (Release, MSVC): 43/43 tests passed (1 disabled placeholder).
 - Status
   - Task complete; proceed to Capacity=0 behavior tests next.
+
+### 2025-10-07 — Phase 3: Capacity=0 behavior tests (Prototype/Cleanup) — COMPLETE
+
+- Context
+  - Phase 3 Testing/CI: validate behavior at zero capacity; no product code changes.
+- Changes
+  - tests/associative_tests.cc:
+    - PrototypeMemory.ZeroCapacityBehavior: Learn() fails; Classify() returns default_label when size()==0.
+    - CleanupMemory.ZeroCapacityBehavior: Insert() fails; Restore() returns fallback when size()==0.
+- Validation
+  - Built associative_tests and ran the two tests in isolation: both passed.
+  - Full suite (Release, MSVC): 45/45 tests passed (1 disabled placeholder).
+- Status
+  - Task complete; next up: property-based tests with fixed seeds.

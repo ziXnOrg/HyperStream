@@ -110,6 +110,7 @@ TEST(CleanupMemory, RestoreReturnsNearestStoredHV) {
     hv_clean.SetBit(i, true);
   }
   for (std::size_t i = 32; i < 48; ++i) {
+
     hv_alt.SetBit(i, true);
   }
   ASSERT_TRUE(cleanup.Insert(hv_clean));
@@ -127,5 +128,37 @@ TEST(CleanupMemory, RestoreReturnsNearestStoredHV) {
     EXPECT_EQ(restored.Words()[i], hv_clean.Words()[i]) << "word index " << i;
   }
 }
+
+TEST(PrototypeMemory, ZeroCapacityBehavior) {
+  static constexpr std::size_t kDim = 32;
+  static constexpr std::size_t kCap = 0;
+  PrototypeMemory<kDim, kCap> memory;
+  EXPECT_EQ(memory.size(), 0u);
+
+  HyperVector<kDim, bool> hv; hv.Clear(); hv.SetBit(0, true);
+  EXPECT_FALSE(memory.Learn(1, hv)) << "Learn should fail when Capacity=0";
+
+  HyperVector<kDim, bool> query; query.Clear(); query.SetBit(1, true);
+  const std::uint64_t kDefault = 777u;
+  EXPECT_EQ(memory.Classify(query, kDefault), kDefault) << "Empty memory should return default label";
+}
+
+TEST(CleanupMemory, ZeroCapacityBehavior) {
+  static constexpr std::size_t kDim = 32;
+  static constexpr std::size_t kCap = 0;
+  CleanupMemory<kDim, kCap> cleanup;
+  EXPECT_EQ(cleanup.size(), 0u);
+
+  HyperVector<kDim, bool> hv; hv.Clear(); hv.SetBit(2, true);
+  EXPECT_FALSE(cleanup.Insert(hv)) << "Insert should fail when Capacity=0";
+
+  HyperVector<kDim, bool> noisy; noisy.Clear(); noisy.SetBit(3, true);
+  HyperVector<kDim, bool> fallback; fallback.Clear(); fallback.SetBit(4, true);
+  const HyperVector<kDim, bool> restored = cleanup.Restore(noisy, fallback);
+  for (std::size_t i = 0; i < restored.Words().size(); ++i) {
+    EXPECT_EQ(restored.Words()[i], fallback.Words()[i]) << "restored should equal fallback when empty";
+  }
+}
+
 
 }  // namespace

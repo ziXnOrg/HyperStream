@@ -22,10 +22,9 @@ protected:
     
     void SetUp() override {
         // Initialize random number generation
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 gen(42);
         std::bernoulli_distribution dist(0.5);
-        
+
         // Generate random hypervectors
         for (size_t i = 0; i < kTestDimension; ++i) {
             hv1_.SetBit(i, dist(gen));

@@ -19,22 +19,41 @@ else()
   add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
-# Enable SIMD optimizations when supported
-include(CheckCXXCompilerFlag)
-if(MSVC)
-  check_cxx_compiler_flag(/arch:AVX2 COMPILER_SUPPORTS_AVX2)
-  if(COMPILER_SUPPORTS_AVX2)
-    add_compile_options(/arch:AVX2)
-  endif()
-else()
-  check_cxx_compiler_flag(-mavx2 COMPILER_SUPPORTS_AVX2)
-  if(COMPILER_SUPPORTS_AVX2)
-    add_compile_options(-mavx2)
-  endif()
-endif()
+# SIMD codegen policy
+# - GCC/Clang: use function-level target attributes in headers for ISA-specific codepaths
+# - MSVC: build per-ISA object libraries from dedicated translation units with per-file /arch flags
 
 # Header-only interface target for HyperStream core
 add_library(hyperstream INTERFACE)
+
+# MSVC-only: add per-ISA object libraries and aggregate static lib for linking
+if(MSVC)
+  file(GLOB HS_SSE2_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/*sse2.cpp)
+  file(GLOB HS_AVX2_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/*avx2.cpp)
+
+  add_library(hs_kernels_sse2 OBJECT ${HS_SSE2_SRCS})
+  target_compile_options(hs_kernels_sse2 PRIVATE /arch:SSE2)
+  target_include_directories(hs_kernels_sse2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+  add_library(hs_kernels_avx2 OBJECT ${HS_AVX2_SRCS})
+  # Guard: only add /arch:AVX2 if supported
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(/arch:AVX2 HS_MSVC_HAS_AVX2)
+  if(HS_MSVC_HAS_AVX2)
+    target_compile_options(hs_kernels_avx2 PRIVATE /arch:AVX2)
+  else()
+    message(WARNING "Compiler does not support /arch:AVX2; AVX2 TUs may fail to build.")
+  endif()
+  target_include_directories(hs_kernels_avx2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+  add_library(hyperstream_kernels STATIC
+    $<TARGET_OBJECTS:hs_kernels_sse2>
+    $<TARGET_OBJECTS:hs_kernels_avx2>
+  )
+  # Propagate kernels to consumers of the header-only interface on MSVC
+  target_link_libraries(hyperstream INTERFACE hyperstream_kernels)
+endif()
+
 
 target_include_directories(hyperstream INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -45,6 +45,7 @@ TEST(Policy, SelectBindAndHammingProduceCorrectResults) {
 TEST(Policy, HeuristicPrefersSSE2ForLargeDimsWhenAVX2Present) {
   using namespace hyperstream::backend;
   const std::uint32_t mask = GetCpuFeatureMask();
+  (void)mask; // silence unused when __AVX2__ undefined
 #if defined(__AVX2__)
   if (HasFeature(mask, CpuFeature::AVX2)) {
     // Below threshold should prefer AVX2

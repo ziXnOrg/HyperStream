@@ -14,6 +14,43 @@ namespace hyperstream {
 namespace backend {
 namespace sse2 {
 
+// Raw SSE2 entry points operating on 64-bit words. Unaligned loads/stores are used (loadu/storeu).
+// For GCC/Clang these are defined with function-level target attributes; on MSVC they are defined in .cpp TUs.
+void BindWords(const std::uint64_t* a, const std::uint64_t* b, std::uint64_t* out, std::size_t word_count);
+std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b, std::size_t word_count);
+
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((target("sse2"))) inline void BindWords(const std::uint64_t* a, const std::uint64_t* b,
+                                                       std::uint64_t* out, std::size_t word_count) {
+  const std::size_t sse2_words = (word_count / 2) * 2;
+  std::size_t i = 0;
+  for (; i < sse2_words; i += 2) {
+    __m128i va = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&a[i]));
+    __m128i vb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&b[i]));
+    __m128i vout = _mm_xor_si128(va, vb);
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(&out[i]), vout);
+  }
+  for (; i < word_count; ++i) out[i] = a[i] ^ b[i];
+}
+
+__attribute__((target("sse2"))) inline std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b,
+                                                                 std::size_t word_count) {
+  const std::size_t sse2_words = (word_count / 2) * 2;
+  std::size_t total = 0; std::size_t i = 0;
+  for (; i < sse2_words; i += 2) {
+    __m128i va = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&a[i]));
+    __m128i vb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&b[i]));
+    __m128i vx = _mm_xor_si128(va, vb);
+    std::uint64_t words[2];
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(words), vx);
+    total += __builtin_popcountll(words[0]);
+    total += __builtin_popcountll(words[1]);
+  }
+  for (; i < word_count; ++i) total += __builtin_popcountll(a[i] ^ b[i]);
+  return total;
+}
+#endif
+
 // SSE2 implementation of Bind (XOR) for binary hypervectors.
 template <std::size_t Dim>
 void BindSSE2(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim, bool>& b,
@@ -21,23 +58,7 @@ void BindSSE2(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim
   const auto& a_words = a.Words();
   const auto& b_words = b.Words();
   auto& out_words = out->Words();
-
-  const std::size_t num_words = a_words.size();
-  const std::size_t sse2_words = (num_words / 2) * 2;  // Process 2 uint64_t at a time
-
-  std::size_t i = 0;
-  // SSE2 path: 2 uint64_t (128 bits) per iteration.
-  for (; i < sse2_words; i += 2) {
-    __m128i va = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&a_words[i]));
-    __m128i vb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&b_words[i]));
-    __m128i vout = _mm_xor_si128(va, vb);
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(&out_words[i]), vout);
-  }
-
-  // Scalar tail for remaining words.
-  for (; i < num_words; ++i) {
-    out_words[i] = a_words[i] ^ b_words[i];
-  }
+  BindWords(a_words.data(), b_words.data(), out_words.data(), a_words.size());
 }
 
 // SSE2 implementation of Hamming distance.
@@ -47,57 +68,7 @@ std::size_t HammingDistanceSSE2(const core::HyperVector<Dim, bool>& a,
                                 const core::HyperVector<Dim, bool>& b) {
   const auto& a_words = a.Words();
   const auto& b_words = b.Words();
-
-  const std::size_t num_words = a_words.size();
-  const std::size_t sse2_words = (num_words / 2) * 2;
-
-  std::size_t total = 0;
-  std::size_t i = 0;
-
-  // SSE2 path: XOR 2 uint64_t at a time, then scalar popcount on each.
-  for (; i < sse2_words; i += 2) {
-    __m128i va = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&a_words[i]));
-    __m128i vb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&b_words[i]));
-    __m128i vxor = _mm_xor_si128(va, vb);
-
-    // Extract two uint64_t and popcount each.
-    std::uint64_t words[2];
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(words), vxor);
-
-#if defined(__GNUC__) || defined(__clang__)
-    total += __builtin_popcountll(words[0]);
-    total += __builtin_popcountll(words[1]);
-#elif defined(_MSC_VER)
-    total += __popcnt64(words[0]);
-    total += __popcnt64(words[1]);
-#else
-    for (int j = 0; j < 2; ++j) {
-      std::uint64_t x = words[j];
-      while (x) {
-        x &= (x - 1);
-        ++total;
-      }
-    }
-#endif
-  }
-
-  // Scalar tail.
-  for (; i < num_words; ++i) {
-    const std::uint64_t xor_word = a_words[i] ^ b_words[i];
-#if defined(__GNUC__) || defined(__clang__)
-    total += __builtin_popcountll(xor_word);
-#elif defined(_MSC_VER)
-    total += __popcnt64(xor_word);
-#else
-    std::uint64_t x = xor_word;
-    while (x) {
-      x &= (x - 1);
-      ++total;
-    }
-#endif
-  }
-
-  return total;
+  return HammingWords(a_words.data(), b_words.data(), a_words.size());
 }
 
 }  // namespace sse2

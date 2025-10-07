@@ -15,6 +15,11 @@ namespace hyperstream {
 namespace backend {
 namespace avx2 {
 
+// Raw AVX2 entry points operating on 64-bit words. Unaligned load/store used.
+// For GCC/Clang these are defined with function-level target attributes; on MSVC they are defined in .cpp TUs.
+void BindWords(const std::uint64_t* a, const std::uint64_t* b, std::uint64_t* out, std::size_t word_count);
+std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b, std::size_t word_count);
+
 // Harley-Seal popcount for __m256i (256-bit vector).
 // Uses CSA (Carry-Save Adder) approach to count bits in parallel.
 inline std::uint64_t Popcount256(__m256i v) {
@@ -39,6 +44,38 @@ inline std::uint64_t Popcount256(__m256i v) {
   return counts[0] + counts[1] + counts[2] + counts[3];
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((target("avx2"))) inline void BindWords(const std::uint64_t* a, const std::uint64_t* b,
+                                                       std::uint64_t* out, std::size_t word_count) {
+  const std::size_t avx2_words = (word_count / 4) * 4;
+  std::size_t i = 0;
+  for (; i < avx2_words; i += 4) {
+    __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&a[i]));
+    __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&b[i]));
+    __m256i vx = _mm256_xor_si256(va, vb);
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(&out[i]), vx);
+  }
+  for (; i < word_count; ++i) out[i] = a[i] ^ b[i];
+}
+
+__attribute__((target("avx2"))) inline std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b,
+                                                                 std::size_t word_count) {
+  const std::size_t avx2_words = (word_count / 4) * 4;
+  std::size_t total = 0; std::size_t i = 0;
+  for (; i < avx2_words; i += 4) {
+    __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&a[i]));
+    __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&b[i]));
+    __m256i vx = _mm256_xor_si256(va, vb);
+    total += Popcount256(vx);
+  }
+  for (; i < word_count; ++i) {
+    const std::uint64_t x = a[i] ^ b[i];
+    total += __builtin_popcountll(x);
+  }
+  return total;
+}
+#endif
+
 // AVX2 implementation of Bind (XOR) for binary hypervectors.
 template <std::size_t Dim>
 void BindAVX2(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim, bool>& b,
@@ -46,50 +83,7 @@ void BindAVX2(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim
   const auto& a_words = a.Words();
   const auto& b_words = b.Words();
   auto& out_words = out->Words();
-
-  const std::size_t num_words = a_words.size();
-  const std::size_t avx2_words = (num_words / 4) * 4;  // Process 4 uint64_t at a time
-
-  // Runtime heuristics for streaming stores to reduce cache pollution on large outputs.
-  const std::size_t out_bytes = num_words * sizeof(std::uint64_t);
-  const bool aligned32_in_a = ((reinterpret_cast<std::uintptr_t>(&a_words[0]) & 31u) == 0u);
-  const bool aligned32_in_b = ((reinterpret_cast<std::uintptr_t>(&b_words[0]) & 31u) == 0u);
-  const bool aligned32_out  = ((reinterpret_cast<std::uintptr_t>(&out_words[0]) & 31u) == 0u);
-  const bool use_aligned_io = aligned32_in_a && aligned32_in_b;  // out handled per-store below
-
-  // Stream stores only for very large transfers with aligned output (conservative)
-  // Threshold can be overridden via env var HYPERSTREAM_NT_THRESHOLD_BYTES
-  static const std::size_t nt_threshold = []() -> std::size_t {
-    if (const char* env = std::getenv("HYPERSTREAM_NT_THRESHOLD_BYTES")) {
-      char* end = nullptr;
-      unsigned long long v = std::strtoull(env, &end, 10);
-      if (end && *end == '\0' && v > 0ULL) return static_cast<std::size_t>(v);
-    }
-    return (1u << 20);  // default 1MB
-  }();
-  const bool use_stream = (out_bytes >= nt_threshold) && aligned32_out;
-  (void)use_stream; // retained for future A/B, currently unused
-  (void)nt_threshold;
-  (void)use_aligned_io;
-
-  std::size_t i = 0;
-  // AVX2 path: single 256-bit chunk per iteration; no manual prefetch; storeu stores.
-  for (; i < avx2_words; i += 4) {
-    // A/B-4: force unaligned loads to remove alignment branch overhead for evaluation.
-    __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&a_words[i]));
-    __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&b_words[i]));
-    __m256i vout = _mm256_xor_si256(va, vb);
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(&out_words[i]), vout);
-  }
-
-  // Scalar tail for remaining words.
-  for (; i < num_words; ++i) {
-    out_words[i] = a_words[i] ^ b_words[i];
-  }
-
-  if (use_stream) {
-    _mm_sfence();  // Ensure non-temporal stores are globally visible before returning
-  }
+  BindWords(a_words.data(), b_words.data(), out_words.data(), a_words.size());
 }
 
 // AVX2 implementation of Hamming distance.
@@ -98,39 +92,7 @@ std::size_t HammingDistanceAVX2(const core::HyperVector<Dim, bool>& a,
                                 const core::HyperVector<Dim, bool>& b) {
   const auto& a_words = a.Words();
   const auto& b_words = b.Words();
-
-  const std::size_t num_words = a_words.size();
-  const std::size_t avx2_words = (num_words / 4) * 4;
-
-  std::size_t total = 0;
-  std::size_t i = 0;
-
-  // AVX2 path: XOR + popcount 4 uint64_t at a time.
-  for (; i < avx2_words; i += 4) {
-    __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&a_words[i]));
-    __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&b_words[i]));
-    __m256i vxor = _mm256_xor_si256(va, vb);
-    total += Popcount256(vxor);
-  }
-
-  // Scalar tail.
-  for (; i < num_words; ++i) {
-    const std::uint64_t xor_word = a_words[i] ^ b_words[i];
-#if defined(__GNUC__) || defined(__clang__)
-    total += __builtin_popcountll(xor_word);
-#elif defined(_MSC_VER)
-    total += __popcnt64(xor_word);
-#else
-    // Fallback: Kernighan's method.
-    std::uint64_t x = xor_word;
-    while (x) {
-      x &= (x - 1);
-      ++total;
-    }
-#endif
-  }
-
-  return total;
+  return HammingWords(a_words.data(), b_words.data(), a_words.size());
 }
 
 }  // namespace avx2

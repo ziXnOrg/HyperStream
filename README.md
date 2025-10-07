@@ -70,6 +70,12 @@ set HYPERSTREAM_HAMMING_SSE2_THRESHOLD=32768     # Windows
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DHYPERSTREAM_FORCE_SCALAR"
 ```
 
+## Runtime dispatch architecture
+
+HyperStream builds universal binaries and selects SIMD backends at runtime to avoid illegal-instruction traps while still delivering optimized SSE2/AVX2 performance.
+
+See Runtime Dispatch Architecture (Docs/Runtime_Dispatch.md) for details on SIMD backend selection and adding new ISA support.
+
 ## Memory footprint helpers
 
 Constexpr helpers estimate storage requirements for common structures.

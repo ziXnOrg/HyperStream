@@ -148,9 +148,8 @@ inline BindFn<Dim> SelectBindBackend(std::uint32_t feature_mask = GetCpuFeatureM
     default: return &core::Bind<Dim>;
   }
 #elif HS_ARM64_ARCH
-  const std::uint32_t neon_only =
-      (feature_mask & static_cast<std::uint32_t>(CpuFeature::NEON));
-  const auto d = detail::DecideBind(Dim, neon_only);
+  (void)feature_mask;  // On ARM64, ignore synthetic x86 bits; use host features
+  const auto d = detail::DecideBind(Dim, GetCpuFeatureMask());
   switch (d.kind) {
     case BackendKind::NEON: return &neon::BindNEON<Dim>;
     default: return &core::Bind<Dim>;
@@ -172,9 +171,8 @@ inline HammingFn<Dim> SelectHammingBackend(std::uint32_t feature_mask = GetCpuFe
     default: return &core::HammingDistance<Dim>;
   }
 #elif HS_ARM64_ARCH
-  const std::uint32_t neon_only =
-      (feature_mask & static_cast<std::uint32_t>(CpuFeature::NEON));
-  const auto d = detail::DecideHamming(Dim, neon_only);
+  (void)feature_mask;  // On ARM64, ignore synthetic x86 bits; use host features
+  const auto d = detail::DecideHamming(Dim, GetCpuFeatureMask());
   switch (d.kind) {
     case BackendKind::NEON: return &neon::HammingDistanceNEON<Dim>;
     default: return &core::HammingDistance<Dim>;

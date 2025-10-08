@@ -33,7 +33,7 @@ jobs:
 
       - name: Build tests
         run: |
-          cmake --build build --config Release -- -j 2
+          cmake --build build --config Release --parallel 2
         shell: bash
 
       - name: Run golden + determinism tests only

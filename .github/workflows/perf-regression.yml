@@ -38,6 +38,18 @@ jobs:
           echo "PERF_TOL_GBPS_PCT=25" >> $GITHUB_ENV
         shell: bash
 
+      - name: Normalize OS_NAME for baseline
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            echo "OS_NAME=linux" >> $GITHUB_ENV
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            echo "OS_NAME=windows" >> $GITHUB_ENV
+          else
+            echo "OS_NAME=macos" >> $GITHUB_ENV
+          fi
+        shell: bash
+
+
 
       - name: Install deps (Ubuntu)
         if: runner.os == 'Linux'
@@ -90,7 +102,7 @@ jobs:
 
       - name: Validate schema + compare with baseline
         env:
-          OS_NAME: ${{ matrix.os }}
+          OS_NAME: ${{ env.OS_NAME }}
         run: |
           python3 scripts/bench_check.py \
             --am am.ndjson \

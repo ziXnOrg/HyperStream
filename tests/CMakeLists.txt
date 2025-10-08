@@ -315,6 +315,10 @@ add_executable(golden_serialization_tests
   golden_serialization_tests.cc
 )
 
+# Provide absolute path to tests dir for file-based goldens
+# e.g., HYPERSTREAM_TESTS_DIR="C:/path/to/repo/tests"
+target_compile_definitions(golden_serialization_tests PRIVATE HYPERSTREAM_TESTS_DIR="${CMAKE_SOURCE_DIR}/tests")
+
 target_link_libraries(golden_serialization_tests PRIVATE
   hyperstream
   gtest

@@ -1,12 +1,12 @@
 {
-  "[\"AM/core\",10000,256,256]": {"queries_per_sec": {"mean": 45000.0}, "eff_gb_per_sec": {"mean": 14.0}},
-  "[\"AM/core\",10000,1024,1024]": {"queries_per_sec": {"mean": 11000.0}, "eff_gb_per_sec": {"mean": 14.5}},
-  "[\"AM/sse2\",10000,1024,1024]": {"queries_per_sec": {"mean": 14000.0}, "eff_gb_per_sec": {"mean": 18.0}},
-  "[\"AM/core\",16384,256,256]": {"queries_per_sec": {"mean": 18000.0}, "eff_gb_per_sec": {"mean": 10.0}},
-  "[\"AM/core\",16384,1024,1024]": {"queries_per_sec": {"mean": 4500.0}, "eff_gb_per_sec": {"mean": 9.5}},
-  "[\"AM/sse2\",16384,1024,1024]": {"queries_per_sec": {"mean": 8000.0}, "eff_gb_per_sec": {"mean": 17.5}},
-  "[\"AM/core\",65536,256,256]": {"queries_per_sec": {"mean": 3500.0}, "eff_gb_per_sec": {"mean": 8.0}},
-  "[\"AM/core\",65536,1024,1024]": {"queries_per_sec": {"mean": 1000.0}, "eff_gb_per_sec": {"mean": 8.9}},
-  "[\"AM/sse2\",65536,1024,1024]": {"queries_per_sec": {"mean": 2000.0}, "eff_gb_per_sec": {"mean": 16.5}}
+  "[\"AM/core\",10000,256,256]": {"queries_per_sec": {"mean": 37499.12}, "eff_gb_per_sec": {"mean": 12.1044}},
+  "[\"AM/core\",10000,1024,1024]": {"queries_per_sec": {"mean": 9281.70}, "eff_gb_per_sec": {"mean": 11.9492}},
+  "[\"AM/sse2\",10000,1024,1024]": {"queries_per_sec": {"mean": 1984.70}, "eff_gb_per_sec": {"mean": 2.5552}},
+  "[\"AM/core\",16384,256,256]": {"queries_per_sec": {"mean": 23368.60}, "eff_gb_per_sec": {"mean": 12.2996}},
+  "[\"AM/core\",16384,1024,1024]": {"queries_per_sec": {"mean": 5831.22}, "eff_gb_per_sec": {"mean": 12.2408}},
+  "[\"AM/sse2\",16384,1024,1024]": {"queries_per_sec": {"mean": 1211.98}, "eff_gb_per_sec": {"mean": 2.5442}},
+  "[\"AM/core\",65536,256,256]": {"queries_per_sec": {"mean": 5909.42}, "eff_gb_per_sec": {"mean": 12.4414}},
+  "[\"AM/core\",65536,1024,1024]": {"queries_per_sec": {"mean": 1006.98}, "eff_gb_per_sec": {"mean": 8.4556}},
+  "[\"AM/sse2\",65536,1024,1024]": {"queries_per_sec": {"mean": 303.96}, "eff_gb_per_sec": {"mean": 2.5520}}
 }
 

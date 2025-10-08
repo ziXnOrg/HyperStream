@@ -1,6 +1,6 @@
 {
-  "[\"Cluster/update_finalize\",10000,16,100]": {"updates_per_sec": {"mean": 120000.0}, "finalizes_per_sec": {"mean": 25000.0}},
-  "[\"Cluster/update_finalize\",16384,16,100]": {"updates_per_sec": {"mean": 70000.0}, "finalizes_per_sec": {"mean": 15000.0}},
-  "[\"Cluster/update_finalize\",65536,16,100]": {"updates_per_sec": {"mean": 18000.0}, "finalizes_per_sec": {"mean": 3200.0}}
+  "[\"Cluster/update_finalize\",10000,16,100]": {"updates_per_sec": {"mean": 105486.02}, "finalizes_per_sec": {"mean": 78614.20}},
+  "[\"Cluster/update_finalize\",16384,16,100]": {"updates_per_sec": {"mean": 37806.66}, "finalizes_per_sec": {"mean": 26550.26}},
+  "[\"Cluster/update_finalize\",65536,16,100]": {"updates_per_sec": {"mean": 3954.14}, "finalizes_per_sec": {"mean": 3734.60}}
 }
 

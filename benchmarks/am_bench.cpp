@@ -20,11 +20,16 @@
 
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/memory/associative.hpp"
+#include "hyperstream/config.hpp"
+#include "hyperstream/backend/policy.hpp"
+#if HS_X86_ARCH
 #include "hyperstream/backend/cpu_backend_sse2.hpp"
 #include "hyperstream/backend/cpu_backend_avx2.hpp"
-#include "hyperstream/config.hpp"
+#endif
+#if HS_ARM64_ARCH
+#include "hyperstream/backend/cpu_backend_neon.hpp"
+#endif
 #include "hyperstream/backend/capability.hpp"
-#include "hyperstream/backend/policy.hpp"
 
 using hyperstream::core::HyperVector;
 using hyperstream::memory::PrototypeMemory;
@@ -174,13 +179,23 @@ static void run_one_dim(const Settings& s) {
   bench_am<Dim, 1024>("AM/core", 1024, [](auto& am, const auto& q){ return am.Classify(q, 0); }, s);
 
   // SSE2 distance functor
+#if HS_X86_ARCH
   bench_am<Dim, 1024>("AM/sse2", 1024, [](const auto& am, const auto& q){
     return am.Classify(q, [](const auto& a, const auto& b){
       return hyperstream::backend::sse2::HammingDistanceSSE2<Dim>(a, b);
     }, 0);
   }, s);
+#endif
 
   // AVX2 distance functor
+#if HS_ARM64_ARCH
+  bench_am<Dim, 1024>("AM/neon", 1024, [](const auto& am, const auto& q){
+    return am.Classify(q, [](const auto& a, const auto& b){
+      return hyperstream::backend::neon::HammingDistanceNEON<Dim>(a, b);
+    }, 0);
+  }, s);
+#endif
+
 #if defined(__AVX2__)
   bench_am<Dim, 1024>("AM/avx2", 1024, [](const auto& am, const auto& q){
     return am.Classify(q, [](const auto& a, const auto& b){

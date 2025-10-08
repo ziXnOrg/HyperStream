@@ -82,6 +82,78 @@ endif()
 
 gtest_discover_tests(encoding_tests)
 
+add_executable(item_memory_tests
+  item_memory_tests.cc
+)
+
+target_link_libraries(item_memory_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(item_memory_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(item_memory_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(item_memory_tests)
+add_executable(symbol_encoder_tests
+  symbol_encoder_tests.cc
+)
+
+target_link_libraries(symbol_encoder_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(symbol_encoder_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(symbol_encoder_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(symbol_encoder_tests)
+add_executable(numeric_tests
+  numeric_tests.cc
+)
+
+target_link_libraries(numeric_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(numeric_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(numeric_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(numeric_tests)
+add_executable(serialization_tests
+  serialization_tests.cc
+)
+
+target_link_libraries(serialization_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(serialization_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(serialization_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(serialization_tests)
+
+
+
+
 add_executable(associative_tests
   associative_tests.cc
 )

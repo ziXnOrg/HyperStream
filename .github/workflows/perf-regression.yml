@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-14]
     env:
       PERF_TOL_QPS_PCT: "15"     # allowed drop percent for queries/sec
       PERF_TOL_GBPS_PCT: "15"    # allowed drop percent for effective GB/s (AM only)
@@ -37,6 +37,18 @@ jobs:
           echo "PERF_TOL_QPS_PCT=25" >> $GITHUB_ENV
           echo "PERF_TOL_GBPS_PCT=25" >> $GITHUB_ENV
         shell: bash
+
+      - name: Normalize OS_NAME for baseline
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            echo "OS_NAME=linux" >> $GITHUB_ENV
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            echo "OS_NAME=windows" >> $GITHUB_ENV
+          else
+            echo "OS_NAME=macos" >> $GITHUB_ENV
+          fi
+        shell: bash
+
 
 
       - name: Install deps (Ubuntu)
@@ -90,7 +102,7 @@ jobs:
 
       - name: Validate schema + compare with baseline
         env:
-          OS_NAME: ${{ matrix.os }}
+          OS_NAME: ${{ env.OS_NAME }}
         run: |
           python3 scripts/bench_check.py \
             --am am.ndjson \

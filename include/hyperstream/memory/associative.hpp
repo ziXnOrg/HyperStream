@@ -96,6 +96,12 @@ class PrototypeMemory {
   std::size_t size() const {
     return size_;
   }
+  /**
+   * @brief Read-only access to the underlying entries buffer.
+   * Returns a pointer to an array of size Capacity; only the first size() entries are valid.
+   */
+  [[nodiscard]] const Entry* data() const noexcept { return entries_.get(); }
+
 
  private:
   std::unique_ptr<Entry[]> entries_;
@@ -165,6 +171,36 @@ class ClusterMemory {
     for (std::size_t bit = 0; bit < Dim; ++bit) {
       out->SetBit(bit, sums_[index * Dim + bit] >= 0);
     }
+  }
+
+  /** Lightweight read-only view of internal buffers (for serialization). */
+  struct View {
+    const std::uint64_t* labels;
+    const int* counts;
+    const int* sums;  // length Capacity*Dim, row-major per cluster
+    std::size_t size;
+  };
+
+  /** Returns a read-only view over labels, counts, and sums; first size() clusters valid. */
+  [[nodiscard]] View view() const noexcept { return View{labels_.data(), counts_.data(), sums_.get(), size_}; }
+
+  /**
+   * @brief Load raw internal buffers. Intended for serialization; validates sizes.
+   * Precondition: size()==0. Returns false on invalid input.
+   */
+  bool LoadRaw(const std::uint64_t* labels, const int* counts, const int* sums, std::size_t n) noexcept {
+    if (size_ != 0 || labels == nullptr || counts == nullptr || sums == nullptr) return false;
+    if (n > Capacity) return false;
+    for (std::size_t i = 0; i < n; ++i) {
+      labels_[i] = labels[i];
+      counts_[i] = counts[i];
+      // copy Dim counters for cluster i
+      for (std::size_t bit = 0; bit < Dim; ++bit) {
+        sums_[i * Dim + bit] = sums[i * Dim + bit];
+      }
+    }
+    size_ = n;
+    return true;
   }
 
   std::size_t size() const {

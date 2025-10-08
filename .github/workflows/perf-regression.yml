@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-14]
     env:
       PERF_TOL_QPS_PCT: "15"     # allowed drop percent for queries/sec
       PERF_TOL_GBPS_PCT: "15"    # allowed drop percent for effective GB/s (AM only)

@@ -10,13 +10,21 @@
 
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
+#include "hyperstream/backend/policy.hpp"
+#if HS_X86_ARCH
 #include "hyperstream/backend/cpu_backend_sse2.hpp"
 #include "hyperstream/backend/cpu_backend_avx2.hpp"
+#endif
+#if HS_ARM64_ARCH
+#include "hyperstream/backend/cpu_backend_neon.hpp"
+#endif
 
 using hyperstream::core::HyperVector;
 using hyperstream::core::HammingDistance;
+#if HS_X86_ARCH
 using hyperstream::backend::sse2::HammingDistanceSSE2;
 using hyperstream::backend::avx2::HammingDistanceAVX2;
+#endif
 
 namespace {
 
@@ -69,13 +77,21 @@ static void run_one() {
     *sink ^= HammingDistance(a, b);
   });
 
+#if HS_X86_ARCH
   bench_impl<D>("Hamming/sse2", [&](volatile std::size_t* sink) {
     *sink ^= HammingDistanceSSE2(a, b);
   });
+#endif
 
 #if defined(__AVX2__)
   bench_impl<D>("Hamming/avx2", [&](volatile std::size_t* sink) {
     *sink ^= HammingDistanceAVX2(a, b);
+  });
+#endif
+
+#if HS_ARM64_ARCH
+  bench_impl<D>("Hamming/neon", [&](volatile std::size_t* sink) {
+    *sink ^= hyperstream::backend::neon::HammingDistanceNEON<D>(a, b);
   });
 #endif
 }

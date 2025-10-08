@@ -39,6 +39,7 @@ void ReportFootprints() {
 #include <chrono>
 #include <cstring>
 
+#if HS_X86_ARCH
 template <std::size_t Dim>
 static std::pair<double,double> MicrobenchHammingSSE2vsAVX2(std::size_t iters) {
   using namespace std::chrono;
@@ -61,6 +62,8 @@ static std::pair<double,double> MicrobenchHammingSSE2vsAVX2(std::size_t iters) {
   const double sse2_ms = duration<double,std::milli>(t1 - t0).count();
   const double avx2_ms = duration<double,std::milli>(t3 - t2).count();
   return {sse2_ms, avx2_ms};
+#endif
+
 }
 
 int main(int argc, char** argv) try {
@@ -92,6 +95,7 @@ int main(int argc, char** argv) try {
   // Footprint estimates
   ReportFootprints();
 
+#if HS_X86_ARCH
   if (auto_tune) {
     // Keep total runtime under ~2 seconds by limiting iterations per dimension.
     std::printf("AutoTune/Hamming begin\n");
@@ -115,6 +119,12 @@ int main(int argc, char** argv) try {
     if (recommended) {
       std::printf("AutoTune/Hamming recommended_threshold=%zu (first dim where sse2 faster)\n", recommended);
     } else {
+#else
+  if (auto_tune) {
+    std::printf("AutoTune/Hamming disabled on this architecture\n");
+  }
+#endif
+
       std::printf("AutoTune/Hamming recommended_threshold=(none within tested range)\n");
     }
     std::printf("AutoTune/Hamming configured_threshold=%zu\n", thr);

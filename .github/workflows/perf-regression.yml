@@ -51,6 +51,18 @@ jobs:
 
 
 
+      - name: Normalize OS_NAME for baseline
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            echo "OS_NAME=linux" >> $GITHUB_ENV
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            echo "OS_NAME=windows" >> $GITHUB_ENV
+          else
+            echo "OS_NAME=macos" >> $GITHUB_ENV
+          fi
+        shell: bash
+
+
       - name: Install deps (Ubuntu)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y cmake build-essential

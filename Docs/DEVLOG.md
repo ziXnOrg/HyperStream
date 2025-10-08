@@ -779,3 +779,45 @@ Notes:
 - Evidence
   - CI run (CI): 18333229927 — macOS Build and Test job success.
   - CI run (Perf Regression): 18333229963 — Windows/Ubuntu/macOS perf jobs success; Windows tolerance step executed.
+
+### 2025-10-08 — Phase B: Encoders + Serialization — COMPLETE
+
+- Context
+  - Elevate HyperStream from core ops + associative memories to production-grade data representations and persistence.
+  - Ensure deterministic, seed-stable encodings and minimal, forward-compatible binary I/O without external deps.
+
+- Deliverables (merged via PR #28)
+  - Encoders (header-only, zero deps)
+    - `ItemMemory<Dim>`: deterministic symbol→HV mapping (SplitMix64 PRNG; trailing-bit masking)
+    - `SymbolEncoder<Dim>`: role-based rotation wrapper around ItemMemory (composition-friendly)
+    - `ThermometerEncoder<Dim>`: scalar→dense monotonic code; controllable resolution
+    - `RandomProjectionEncoder<Dim>`: numeric vector→binary HV via seeded projections; deterministic
+  - Serialization (HSER1)
+    - Header-only binary save/load for PrototypeMemory and ClusterMemory (little-endian; size checks; no exceptions; bool-return)
+    - Minimal read-only accessors added to associative.hpp (const data/view and LoadRaw)
+  - Tests
+    - Determinism, density, role-rotation, projection stability, round-trip I/O, corruption/mismatch detection
+    - Full suite passing (61/61 before merge); zero new warnings under strict flags
+  - Docs
+    - Docs/Encoders.md and Docs/Serialization.md (format spec, invariants, examples, threading notes)
+
+- CI/CD — macOS perf baseline alignment (PR #29)
+  - Issue: Baselines captured on macOS‑15/AppleClang 17; CI pinned to macOS‑14/AppleClang 15 → apparent ~30% AM regressions
+  - Fixes:
+    - Workflow pinned perf job to macos-14; normalized OS_NAME → baseline folder mapping (linux/macos/windows)
+    - Re-captured baselines from fresh macOS‑14 run; stored medians in ci/perf_baseline/macos/*.json
+  - Outcome: Perf Regression (NDJSON) macOS job passes at existing 25% tolerances; Ubuntu/Windows unaffected
+
+- Key technical decisions
+  - Deterministic encoders default to fixed seeds; role-based permutations use word-rotate with tail masking
+  - Serialization favors simplicity and robustness: fixed magic ("HSER1"), explicit sizes, strict little‑endian, no exceptions
+  - Keep macOS/Windows perf tolerances at 25% pending multi-run variance analysis; Linux remains tighter
+
+- Lessons learned
+  - CI runner provenance matters: OS/compilers can shift medians by >25%; baselines must match runner family
+  - Normalize workflow OS naming for baseline lookup to avoid path drift on matrix changes
+  - Prefer medians over means for stable baselines; enforce warmup + multiple samples in benches
+
+- Follow-ups
+  - After several stable macOS‑14 runs, consider narrowing tolerances; reassess macOS‑15 (macos-latest) when deliberately re-baselining
+  - Add cross-platform golden-file checks for serialization (byte‑exactness) and encoder determinism across compilers

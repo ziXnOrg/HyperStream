@@ -13,6 +13,14 @@
 #define HS_X86_ARCH 0
 #endif
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define HS_ARM64_ARCH 1
+#include "hyperstream/backend/cpu_backend_neon.hpp"
+#else
+#define HS_ARM64_ARCH 0
+#endif
+
+
 using hyperstream::core::HyperVector;
 
 namespace {
@@ -81,9 +89,15 @@ static void CheckOneDim() {
       EXPECT_NE(bind_fn, &hyperstream::core::Bind<D>);
     }
 #else
-    // Non-x86: all selections should be scalar regardless of mask
+  #if HS_ARM64_ARCH
+    // On ARM64: NEON is baseline regardless of synthetic x86 mask
+    EXPECT_EQ(bind_fn, &hyperstream::backend::neon::BindNEON<D>);
+    EXPECT_EQ(ham_fn,  &hyperstream::backend::neon::HammingDistanceNEON<D>);
+  #else
+    // Other non-x86 arches: scalar
     EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
     EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
+  #endif
 #endif
 
     // Execute selected backends to ensure no illegal instruction and correct results

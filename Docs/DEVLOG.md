@@ -821,3 +821,10 @@ Notes:
 - Follow-ups
   - After several stable macOS‑14 runs, consider narrowing tolerances; reassess macOS‑15 (macos-latest) when deliberately re-baselining
   - Add cross-platform golden-file checks for serialization (byte‑exactness) and encoder determinism across compilers
+
+### 2025-10-08 — Phase C: Golden serialization scaffolding + encoder determinism + golden-compat (read-only)
+
+- PR #32 opened: golden serialization idempotence tests + encoder determinism tests; new Golden Compatibility CI job.
+- Windows build fixed by switching to `cmake --build ... --parallel 2` (commit 5b3afeb); MSBuild no longer sees `-j`.
+- Outcome: Golden Compatibility PASS on ubuntu/windows/macos-14; macOS-14 Perf Regression also PASS on this PR.
+- Next: Commit canonical golden byte fixtures with SHA-256 manifest and make tests assert fixtures; then add canonical per-encoder hashes across compilers.

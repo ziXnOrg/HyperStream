@@ -8,17 +8,24 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include "hyperstream/backend/policy.hpp"
+#if HS_X86_ARCH
 #include <immintrin.h>
-
-#include "hyperstream/core/hypervector.hpp"
-#include "hyperstream/core/ops.hpp"
 #include "hyperstream/backend/cpu_backend_sse2.hpp"
 #include "hyperstream/backend/cpu_backend_avx2.hpp"
+#endif
+#if HS_ARM64_ARCH
+#include "hyperstream/backend/cpu_backend_neon.hpp"
+#endif
+#include "hyperstream/core/hypervector.hpp"
+#include "hyperstream/core/ops.hpp"
 
 using hyperstream::core::HyperVector;
 using hyperstream::core::Bind;
+#if HS_X86_ARCH
 using hyperstream::backend::sse2::BindSSE2;
 using hyperstream::backend::avx2::BindAVX2;
+#endif
 
 namespace {
 
@@ -113,10 +120,19 @@ static void run_one() {
     *sink ^= a.Words()[0];
   });
 
+#if HS_X86_ARCH
   bench_impl<D>("Bind/sse2", [&](volatile std::uint64_t* sink) {
     BindSSE2(a, b, &out);
     *sink ^= a.Words()[0];
   });
+#endif
+#if HS_ARM64_ARCH
+  bench_impl<D>("Bind/neon", [&](volatile std::uint64_t* sink) {
+    hyperstream::backend::neon::BindNEON(a, b, &out);
+    *sink ^= a.Words()[0];
+  });
+#endif
+
 }
 
 } // namespace

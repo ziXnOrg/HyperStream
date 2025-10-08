@@ -1,0 +1,53 @@
+name: Golden Compatibility
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tests/**'
+      - '.github/workflows/golden-compat.yml'
+      - 'include/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'tests/**'
+      - '.github/workflows/golden-compat.yml'
+      - 'include/**'
+
+jobs:
+  golden-compat:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Build tests
+        run: |
+          cmake --build build --config Release --parallel 2
+        shell: bash
+
+      - name: Run golden + determinism tests only
+        run: |
+          ctest -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism)"
+        shell: bash
+
+      - name: Record provenance
+        run: |
+          echo "RunnerOS=$RUNNER_OS"
+          echo "ImageOS=$ImageOS"
+          echo "ImageVersion=$ImageVersion"
+          c++ --version || true
+          clang++ --version || true
+          cl.exe || true
+        shell: bash
+

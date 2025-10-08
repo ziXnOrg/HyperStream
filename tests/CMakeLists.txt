@@ -309,3 +309,41 @@ target_link_libraries(dispatch_property_tests PRIVATE
 )
 
 gtest_discover_tests(dispatch_property_tests)
+
+# Golden serialization tests (byte-exact idempotence)
+add_executable(golden_serialization_tests
+  golden_serialization_tests.cc
+)
+
+target_link_libraries(golden_serialization_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(golden_serialization_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(golden_serialization_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(golden_serialization_tests)
+
+# Encoder determinism tests with hashing helper
+add_executable(encoder_determinism_tests
+  encoder_determinism_tests.cc
+)
+
+target_link_libraries(encoder_determinism_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(encoder_determinism_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(encoder_determinism_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(encoder_determinism_tests)

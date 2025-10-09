@@ -865,3 +865,16 @@ Notes:
 - Windows perf baseline parity:
   - Perf Regression matrix pinned to `windows-2022` to match committed baseline environment and avoid false regressions introduced by `windows-latest` (Windows Server 2025) image shift.
 - CI results: All green — Golden Compatibility, Perf Regression (ubuntu-latest, windows-2022, macos-14), and standard CI.
+
+
+### 2025-10-09 — Phase D: Perf CI robustness & baseline hygiene — KICKOFF
+
+- Branch: feat/phase-d-perf-ci-robustness-20251009
+- Scope: tests/scripts/docs-only; zero library code changes; zero external deps.
+- Validator (scripts/bench_check.py):
+  - Enforce variance-bounds (stdev/mean) per OS when samples ≥ 3: Linux ≤0.10, macOS ≤0.20, Windows ≤0.25
+  - Emit per-group aggregates with provenance to perf_agg.ndjson (runner_os, image_os, image_version, compiler)
+- Workflow (.github/workflows/perf-regression.yml):
+  - Added provenance echo step and artifact upload of perf_agg.ndjson
+- Docs: Reproducibility.md updated with thresholds and windows-2022 baseline refresh procedure
+- Next: Open PR and validate CI across ubuntu-latest, windows-2022, macos-14

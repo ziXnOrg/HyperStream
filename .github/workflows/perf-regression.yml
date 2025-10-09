@@ -81,6 +81,19 @@ jobs:
           cmake --build build --config Release -j 4
         shell: bash
 
+
+      - name: Record provenance
+        run: |
+          echo "RunnerOS=$RUNNER_OS"
+          echo "ImageOS=$ImageOS"
+          echo "ImageVersion=$ImageVersion"
+          c++ --version || true
+          clang++ --version || true
+          cl.exe || true
+          echo "--- CMake cache ---"
+          grep -E 'CMAKE_CXX_COMPILER:|CMAKE_CXX_COMPILER_VERSION:|CMAKE_CXX_FLAGS:|CMAKE_BUILD_TYPE:' build/CMakeCache.txt || true
+        shell: bash
+
       - name: Run benches (NDJSON)
         id: run_benches
         run: |
@@ -126,4 +139,11 @@ jobs:
             --tol-qps $PERF_TOL_QPS_PCT \
             --tol-gbps $PERF_TOL_GBPS_PCT
         shell: bash
+
+      - name: Upload perf aggregates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-agg-${{ matrix.os }}
+          path: perf_agg.ndjson
 

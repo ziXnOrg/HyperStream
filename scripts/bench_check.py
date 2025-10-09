@@ -95,6 +95,71 @@ def compute_aggregates_cluster(rows):
     return out
 
 
+# --- Phase D additions: variance-bounds and provenance helpers ---
+
+def _var_threshold(os_name: str) -> float:
+    os_key = os_name.lower()
+    if os_key in ("ubuntu-latest", "linux"):  # workflow passes normalized 'linux'
+        return 0.10
+    if os_key in ("macos-14", "macos", "macos-latest"):
+        return 0.20
+    # windows-2022/windows-latest
+    return 0.25
+
+
+def _get_provenance():
+    prov = {
+        "runner_os": os.environ.get("RUNNER_OS", ""),
+        "image_os": os.environ.get("ImageOS", ""),
+        "image_version": os.environ.get("ImageVersion", ""),
+    }
+    # Try to augment from CMake cache if present
+    try:
+        with open("build/CMakeCache.txt", "r", encoding="utf-8") as f:
+            cache = f.read()
+        import re
+        cc = re.search(r"CMAKE_CXX_COMPILER:.*=(.*)", cache)
+        cv = re.search(r"CMAKE_CXX_COMPILER_VERSION:.*=(.*)", cache)
+        if cc:
+            prov["cmake_cxx_compiler"] = cc.group(1).strip()
+        if cv:
+            prov["cmake_cxx_compiler_version"] = cv.group(1).strip()
+    except Exception:
+        pass
+    return prov
+
+
+def _write_aggregates_ndjson(path, am_aggr, cl_aggr, provenance):
+    try:
+        with open(path, "w", encoding="utf-8") as out:
+            for k, v in am_aggr.items():
+                rec = {"kind": "AM", "key": list(k)}
+                rec.update(v)
+                rec.update(provenance)
+                out.write(json.dumps(rec, separators=(",", ":")) + "\n")
+            for k, v in cl_aggr.items():
+                rec = {"kind": "Cluster", "key": list(k)}
+                rec.update(v)
+                rec.update(provenance)
+                out.write(json.dumps(rec, separators=(",", ":")) + "\n")
+    except Exception as e:
+        print(f"WARN: failed to write aggregates NDJSON '{path}': {e}", file=sys.stderr)
+
+
+def _build_counts_am(rows):
+    g = defaultdict(int)
+    for o in rows:
+        g[group_key_am(o)] += 1
+    return g
+
+
+def _build_counts_cluster(rows):
+    g = defaultdict(int)
+    for o in rows:
+        g[group_key_cluster(o)] += 1
+    return g
+
+
 def load_baseline(dirpath, os_name):
     # Expect per-OS subdir: linux|windows|macos
     m={
@@ -130,8 +195,13 @@ def run(args):
     require_fields(am_rows, REQ_AM)
     require_fields(cl_rows, REQ_CLUSTER)
 
+    # Aggregates
     am_aggr=compute_aggregates_am(am_rows)
     cl_aggr=compute_aggregates_cluster(cl_rows)
+
+    # Sample counts per group (for variance-bounds gating)
+    am_counts=_build_counts_am(am_rows)
+    cl_counts=_build_counts_cluster(cl_rows)
 
     am_base, cl_base=load_baseline(args.baseline_dir, args.os)
 
@@ -159,6 +229,30 @@ def run(args):
         ok2,d2=compare_metric(cur["finalizes_per_sec"]["mean"], base_obj["finalizes_per_sec"]["mean"], args.tol_qps, "Cluster finalizes")
         if not ok1: failures.append(d1+f" key={key}")
         if not ok2: failures.append(d2+f" key={key}")
+
+    # Variance-bounds enforcement (only when sufficient samples)
+    thr=_var_threshold(args.os)
+    for k,v in am_aggr.items():
+        n=am_counts.get(k,0)
+        if n>=3:
+            mean=v["queries_per_sec"]["mean"]; std=v["queries_per_sec"]["stdev"]
+            if mean>0 and (std/mean)>thr:
+                failures.append(f"AM qps variance too high: stdev/mean={(std/mean):.3f} > {thr:.3f} key={k}")
+            mean=v["eff_gb_per_sec"]["mean"]; std=v["eff_gb_per_sec"]["stdev"]
+            if mean>0 and (std/mean)>thr:
+                failures.append(f"AM gbps variance too high: stdev/mean={(std/mean):.3f} > {thr:.3f} key={k}")
+    for k,v in cl_aggr.items():
+        n=cl_counts.get(k,0)
+        if n>=3:
+            mean=v["updates_per_sec"]["mean"]; std=v["updates_per_sec"]["stdev"]
+            if mean>0 and (std/mean)>thr:
+                failures.append(f"Cluster updates variance too high: stdev/mean={(std/mean):.3f} > {thr:.3f} key={k}")
+            mean=v["finalizes_per_sec"]["mean"]; std=v["finalizes_per_sec"]["stdev"]
+            if mean>0 and (std/mean)>thr:
+                failures.append(f"Cluster finalizes variance too high: stdev/mean={(std/mean):.3f} > {thr:.3f} key={k}")
+
+    # Emit aggregates with provenance for artifacting
+    _write_aggregates_ndjson("perf_agg.ndjson", am_aggr, cl_aggr, _get_provenance())
 
     # Log summary
     print("=== Aggregates (AM) ===")

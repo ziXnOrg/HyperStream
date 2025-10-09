@@ -65,3 +65,13 @@ Recompute and update SHA-256 in tests/golden/hser1/manifest.json if fixtures cha
 - No library code changes are required for determinism tests; the scope is tests and docs only.
 - The reference hashes are expected to be identical across platforms; per-platform entries exist to make platform provenance explicit and ease debugging if a divergence is detected by CI.
 
+## Perf CI variance-bounds and baseline hygiene (Phase D)
+
+- Variance-bounds enforcement (in validator): stdev/mean thresholds per OS when samples ≥ 3
+  - Linux (ubuntu-latest): ≤ 0.10
+  - macOS (macos-14): ≤ 0.20
+  - Windows (windows-2022): ≤ 0.25
+- Aggregates + provenance: the validator emits perf_agg.ndjson with per-group aggregates and provenance fields
+  - runner_os, image_os, image_version, cmake_cxx_compiler, cmake_cxx_compiler_version
+- Workflow: SAMPLES ≥ 3; NDJSON from benches is aggregated by scripts/bench_check.py, which enforces tolerances and variance-bounds
+- Baseline refresh (windows-2022): when windows-latest advances images, keep perf job pinned to windows-2022 until deliberate re-baselining; capture fresh baselines from multiple runs and store medians

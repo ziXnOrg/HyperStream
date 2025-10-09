@@ -36,9 +36,24 @@ jobs:
           cmake --build build --config Release --parallel 2
         shell: bash
 
-      - name: Run golden + determinism tests only
+      - name: Run golden + determinism tests (SIMD/default)
         run: |
           ctest -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism)"
+        shell: bash
+
+      - name: Configure (Release, force scalar)
+        run: |
+          cmake -S . -B build_scalar -DCMAKE_BUILD_TYPE=Release -DHYPERSTREAM_FORCE_SCALAR=ON
+        shell: bash
+
+      - name: Build tests (force scalar)
+        run: |
+          cmake --build build_scalar --config Release --parallel 2
+        shell: bash
+
+      - name: Run golden + determinism tests (force scalar)
+        run: |
+          ctest --test-dir build_scalar -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism)"
         shell: bash
 
       - name: Record provenance
@@ -49,5 +64,9 @@ jobs:
           c++ --version || true
           clang++ --version || true
           cl.exe || true
+          echo "--- CMake cache (default) ---"
+          grep -E 'CMAKE_CXX_COMPILER:|CMAKE_CXX_FLAGS:|CMAKE_BUILD_TYPE:|HYPERSTREAM_FORCE_SCALAR' build/CMakeCache.txt || true
+          echo "--- CMake cache (scalar) ---"
+          grep -E 'CMAKE_CXX_COMPILER:|CMAKE_CXX_FLAGS:|CMAKE_BUILD_TYPE:|HYPERSTREAM_FORCE_SCALAR' build_scalar/CMakeCache.txt || true
         shell: bash
 

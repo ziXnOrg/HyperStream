@@ -1,0 +1,39 @@
+{
+  "format": "HSER1",
+  "generated_by": "HyperStream golden fixture generator",
+  "fixtures": [
+    {
+      "file": "prototype_d96_c3.hser1",
+      "sha256": "4452c27b6d627d09e3a3616814abfd427d31280f294119f0fbbb51d074555dec",
+      "type": "PrototypeMemory",
+      "dim": 96,
+      "capacity": 3,
+      "size": 2
+    },
+    {
+      "file": "prototype_d128_c4.hser1",
+      "sha256": "5a68c4b7748a4027f911e1dad551f407b6088e1c8671ac604c9a37b620754575",
+      "type": "PrototypeMemory",
+      "dim": 128,
+      "capacity": 4,
+      "size": 3
+    },
+    {
+      "file": "cluster_d96_c3.hser1",
+      "sha256": "0f78d76de90bebabfe35760bc6ce427b030eeb88f50c4eb1033a93e8b8db5f0d",
+      "type": "ClusterMemory",
+      "dim": 96,
+      "capacity": 3,
+      "size": 2
+    },
+    {
+      "file": "cluster_d128_c4.hser1",
+      "sha256": "1083af85a0ec2e38814cc990fa6961ae9144270992d08ac912adc76d2ec97aa4",
+      "type": "ClusterMemory",
+      "dim": 128,
+      "capacity": 4,
+      "size": 2
+    }
+  ]
+}
+

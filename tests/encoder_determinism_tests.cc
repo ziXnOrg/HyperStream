@@ -37,6 +37,14 @@ static std::string PlatformId() {
 #endif
 }
 
+static const char* BackendId() {
+#ifdef HYPERSTREAM_FORCE_SCALAR
+  return "scalar";
+#else
+  return "simd";
+#endif
+}
+
 static std::string ReadTextFile(const std::string& path) {
   std::ifstream f(path, std::ios::binary);
   EXPECT_TRUE(f.good()) << "open failed: " << path;
@@ -98,6 +106,7 @@ static inline std::uint64_t HashWords(const std::uint64_t* words, std::size_t n)
 }
 
 TEST(EncoderDeterminism, ItemMemory_SameSeedSameOutput) {
+  ::testing::Test::RecordProperty("backend", BackendId());
   static constexpr std::size_t D = 256;
   const std::uint64_t seed = 0x123456789abcdef0ull;
   ItemMemory<D> im_a(seed);
@@ -125,6 +134,7 @@ TEST(EncoderDeterminism, ItemMemory_SameSeedSameOutput) {
 }
 
 TEST(EncoderDeterminism, SymbolEncoder_RoleRotationDeterministic) {
+  ::testing::Test::RecordProperty("backend", BackendId());
   static constexpr std::size_t D = 256;
   SymbolEncoder<D> sym(0x9e3779b97f4a7c15ull);
 
@@ -150,6 +160,7 @@ TEST(EncoderDeterminism, SymbolEncoder_RoleRotationDeterministic) {
 }
 
 TEST(EncoderDeterminism, NumericEncoders_FixedSeedStable) {
+  ::testing::Test::RecordProperty("backend", BackendId());
   static constexpr std::size_t D = 256;
   ThermometerEncoder<D> therm(0.0, 1.0);
   RandomProjectionEncoder<D> proj(0x51ed2701f3a5c7b9ull /*seed*/);

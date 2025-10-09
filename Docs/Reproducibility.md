@@ -17,6 +17,7 @@ This document captures the guarantees and validation workflow for deterministic 
 - tests/golden/encoder_hashes.json: canonical 64-bit FNV-1a hashes over encoder word buffers
 
 Platform identifiers used in tests:
+
 - windows-msvc
 - linux-gcc
 - macos-clang
@@ -25,6 +26,13 @@ Platform identifiers used in tests:
 
 - Golden serialization tests load committed .hser1 fixtures, deserialize, re-serialize, and assert byte equality. A manifest test verifies SHA-256 for each fixture.
 - Encoder determinism tests compute per-encoder 64-bit FNV-1a hashes and assert equality with committed values from tests/golden/encoder_hashes.json for the current platform.
+- Backend parity: CI builds and runs the determinism tests twice — once with default backends (SIMD enabled when available) and once with scalar-only by configuring CMake with `-DHYPERSTREAM_FORCE_SCALAR=ON`. Hashes must match in both modes.
+
+## Provenance and verification in CI
+
+- The Golden Compatibility workflow prints compiler versions and key CMake cache entries from both builds (default and force-scalar):
+  - `CMAKE_CXX_COMPILER`, `CMAKE_CXX_FLAGS`, `CMAKE_BUILD_TYPE`, `HYPERSTREAM_FORCE_SCALAR`
+- Tests additionally record a `backend` property ("simd" or "scalar") for each determinism test to aid debugging.
 
 ## Regenerating encoder hashes (when legitimately needed)
 

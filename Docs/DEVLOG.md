@@ -828,3 +828,26 @@ Notes:
 - Windows build fixed by switching to `cmake --build ... --parallel 2` (commit 5b3afeb); MSBuild no longer sees `-j`.
 - Outcome: Golden Compatibility PASS on ubuntu/windows/macos-14; macOS-14 Perf Regression also PASS on this PR.
 - Next: Commit canonical golden byte fixtures with SHA-256 manifest and make tests assert fixtures; then add canonical per-encoder hashes across compilers.
+
+### 2025-10-09 — Phase C: Canonical per-encoder hashes validated in CI; backend parity task kicked off
+
+- Context
+  - Captured canonical 64-bit FNV-1a hashes for ItemMemory, SymbolEncoder (role rotations), ThermometerEncoder, RandomProjectionEncoder at D=256; added D=1024 dump helper.
+  - Committed tests/golden/encoder_hashes.json and extended tests/encoder_determinism_tests.cc to assert against it.
+  - Opened PR #33 to trigger Golden Compatibility across platforms for commits 9620a30, 96e9867, 8c9d5eb.
+
+- CI Validation (PR #33)
+  - Golden Compatibility: PASS on all platforms for head 8c9d5eb
+    - ubuntu-latest: success
+    - windows-latest: success
+    - macos-14: success
+
+- Artifacts
+  - tests/golden/encoder_hashes.json: canonical per-encoder hashes (windows-msvc/linux-gcc/macos-clang entries are equal by design)
+  - Docs/Reproducibility.md: determinism guarantees and regeneration steps
+
+- Next task (approved): Backend parity + provenance (tests/CI/docs-only)
+  - Add a second build/run in Golden Compatibility with -DHYPERSTREAM_FORCE_SCALAR=ON; hashes must match default (SIMD) build.
+  - Augment provenance: print compiler versions and CMake cache entries (CMAKE_CXX_COMPILER, CMAKE_CXX_FLAGS, CMAKE_BUILD_TYPE, HYPERSTREAM_FORCE_SCALAR) for both builds.
+  - Tests annotate backend mode via RecordProperty("backend", "simd" | "scalar").
+  - Update Docs/Reproducibility.md with backend parity and provenance verification.

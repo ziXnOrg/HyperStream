@@ -338,6 +338,10 @@ add_executable(encoder_determinism_tests
   encoder_determinism_tests.cc
 )
 
+# Provide absolute path to tests dir for file-based goldens
+# e.g., HYPERSTREAM_TESTS_DIR="C:/path/to/repo/tests"
+target_compile_definitions(encoder_determinism_tests PRIVATE HYPERSTREAM_TESTS_DIR="${CMAKE_SOURCE_DIR}/tests")
+
 target_link_libraries(encoder_determinism_tests PRIVATE
   hyperstream
   gtest

@@ -1,0 +1,18 @@
+[
+  {"encoder":"ItemMemory","dim":256,"seed":"0x123456789abcdef0","platform":"windows-msvc","hash":"0x0239b764d93914bc"},
+  {"encoder":"ItemMemory","dim":256,"seed":"0x123456789abcdef0","platform":"linux-gcc","hash":"0x0239b764d93914bc"},
+  {"encoder":"ItemMemory","dim":256,"seed":"0x123456789abcdef0","platform":"macos-clang","hash":"0x0239b764d93914bc"},
+
+  {"encoder":"SymbolEncoder","dim":256,"platform":"windows-msvc","hash":"0xcc7c7bf42c2ecc89"},
+  {"encoder":"SymbolEncoder","dim":256,"platform":"linux-gcc","hash":"0xcc7c7bf42c2ecc89"},
+  {"encoder":"SymbolEncoder","dim":256,"platform":"macos-clang","hash":"0xcc7c7bf42c2ecc89"},
+
+  {"encoder":"Thermometer","dim":256,"platform":"windows-msvc","hash":"0x252664cd26f3f157"},
+  {"encoder":"Thermometer","dim":256,"platform":"linux-gcc","hash":"0x252664cd26f3f157"},
+  {"encoder":"Thermometer","dim":256,"platform":"macos-clang","hash":"0x252664cd26f3f157"},
+
+  {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"windows-msvc","hash":"0x699c36356c200bae"},
+  {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"linux-gcc","hash":"0x699c36356c200bae"},
+  {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"macos-clang","hash":"0x699c36356c200bae"}
+]
+

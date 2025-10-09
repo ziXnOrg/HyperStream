@@ -13,6 +13,22 @@
 
   {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"windows-msvc","hash":"0x699c36356c200bae"},
   {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"linux-gcc","hash":"0x699c36356c200bae"},
-  {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"macos-clang","hash":"0x699c36356c200bae"}
+  {"encoder":"RandomProjection","dim":256,"seed":"0x51ed2701f3a5c7b9","platform":"macos-clang","hash":"0x699c36356c200bae"},
+
+  {"encoder":"ItemMemory","dim":1024,"seed":"0x123456789abcdef0","platform":"windows-msvc","hash":"0x0d82189ee985c0cd"},
+  {"encoder":"ItemMemory","dim":1024,"seed":"0x123456789abcdef0","platform":"linux-gcc","hash":"0x0d82189ee985c0cd"},
+  {"encoder":"ItemMemory","dim":1024,"seed":"0x123456789abcdef0","platform":"macos-clang","hash":"0x0d82189ee985c0cd"},
+
+  {"encoder":"SymbolEncoder","dim":1024,"platform":"windows-msvc","hash":"0x80e89f6988c0d184"},
+  {"encoder":"SymbolEncoder","dim":1024,"platform":"linux-gcc","hash":"0x80e89f6988c0d184"},
+  {"encoder":"SymbolEncoder","dim":1024,"platform":"macos-clang","hash":"0x80e89f6988c0d184"},
+
+  {"encoder":"Thermometer","dim":1024,"platform":"windows-msvc","hash":"0xf5092cab5841147d"},
+  {"encoder":"Thermometer","dim":1024,"platform":"linux-gcc","hash":"0xf5092cab5841147d"},
+  {"encoder":"Thermometer","dim":1024,"platform":"macos-clang","hash":"0xf5092cab5841147d"},
+
+  {"encoder":"RandomProjection","dim":1024,"seed":"0x51ed2701f3a5c7b9","platform":"windows-msvc","hash":"0x98540b56628f38f6"},
+  {"encoder":"RandomProjection","dim":1024,"seed":"0x51ed2701f3a5c7b9","platform":"linux-gcc","hash":"0x98540b56628f38f6"},
+  {"encoder":"RandomProjection","dim":1024,"seed":"0x51ed2701f3a5c7b9","platform":"macos-clang","hash":"0x98540b56628f38f6"}
 ]
 

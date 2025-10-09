@@ -219,5 +219,42 @@ TEST(EncoderDeterminism, DISABLED_DumpEncoderHashes) {
   }
 }
 
+// Also dump a second dimension for reference coverage (not asserted by tests)
+TEST(EncoderDeterminism, DISABLED_DumpEncoderHashes_D1024) {
+  static constexpr std::size_t D = 1024;
+  const std::string plat = PlatformId();
+  {
+    const std::uint64_t seed = 0x123456789abcdef0ull;
+    ItemMemory<D> im(seed);
+    HyperVector<D, bool> hv; im.EncodeId(42, &hv);
+    const auto h = HashWords(hv.Words().data(), hv.Words().size());
+    std::printf("{\"encoder\":\"ItemMemory\",\"dim\":%d,\"seed\":\"0x%llx\",\"platform\":\"%s\",\"hash\":\"%s\"}\n",
+               (int)D, (unsigned long long)seed, plat.c_str(), Hex64(h).c_str());
+  }
+  {
+    SymbolEncoder<D> sym(0x9e3779b97f4a7c15ull);
+    HyperVector<D, bool> hv; sym.EncodeTokenRole("alpha", 7, &hv);
+    const auto h = HashWords(hv.Words().data(), hv.Words().size());
+    std::printf("{\"encoder\":\"SymbolEncoder\",\"dim\":%d,\"platform\":\"%s\",\"hash\":\"%s\"}\n",
+               (int)D, plat.c_str(), Hex64(h).c_str());
+  }
+  {
+    ThermometerEncoder<D> therm(0.0, 1.0);
+    HyperVector<D, bool> hv; therm.Encode(0.5, &hv);
+    const auto h = HashWords(hv.Words().data(), hv.Words().size());
+    std::printf("{\"encoder\":\"Thermometer\",\"dim\":%d,\"platform\":\"%s\",\"hash\":\"%s\"}\n",
+               (int)D, plat.c_str(), Hex64(h).c_str());
+  }
+  {
+    RandomProjectionEncoder<D> proj(0x51ed2701f3a5c7b9ull);
+    const float vec[4] = {1.0f, -2.0f, 0.5f, 7.0f};
+    HyperVector<D, bool> hv; proj.Encode(vec, 4, &hv);
+    const auto h = HashWords(hv.Words().data(), hv.Words().size());
+    std::printf("{\"encoder\":\"RandomProjection\",\"dim\":%d,\"seed\":\"0x%llx\",\"platform\":\"%s\",\"hash\":\"%s\"}\n",
+               (int)D, (unsigned long long)0x51ed2701f3a5c7b9ull, plat.c_str(), Hex64(h).c_str());
+  }
+}
+
+
 } // namespace
 

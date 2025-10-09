@@ -851,3 +851,17 @@ Notes:
   - Augment provenance: print compiler versions and CMake cache entries (CMAKE_CXX_COMPILER, CMAKE_CXX_FLAGS, CMAKE_BUILD_TYPE, HYPERSTREAM_FORCE_SCALAR) for both builds.
   - Tests annotate backend mode via RecordProperty("backend", "simd" | "scalar").
   - Update Docs/Reproducibility.md with backend parity and provenance verification.
+
+
+### 2025-10-09 — Phase C: Backend parity + provenance — COMPLETE
+
+- PR #33 merged to main; feature branch deleted.
+- Commits included: 9620a30, 96e9867, 8c9d5eb, 26b4068, 5b051b1.
+- Backend parity:
+  - Golden Compatibility now runs determinism/golden tests twice: default (SIMD) and force-scalar (`-DHYPERSTREAM_FORCE_SCALAR=ON`).
+  - Encoder hashes must match in both modes; tests annotate `backend` via `RecordProperty` for provenance.
+- Provenance enhancements:
+  - Workflow logs compiler versions and key CMake cache entries for both builds: `CMAKE_CXX_COMPILER`, `CMAKE_CXX_FLAGS`, `CMAKE_BUILD_TYPE`, `HYPERSTREAM_FORCE_SCALAR`.
+- Windows perf baseline parity:
+  - Perf Regression matrix pinned to `windows-2022` to match committed baseline environment and avoid false regressions introduced by `windows-latest` (Windows Server 2025) image shift.
+- CI results: All green — Golden Compatibility, Perf Regression (ubuntu-latest, windows-2022, macos-14), and standard CI.

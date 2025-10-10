@@ -65,6 +65,31 @@ Recompute and update SHA-256 in tests/golden/hser1/manifest.json if fixtures cha
 - No library code changes are required for determinism tests; the scope is tests and docs only.
 - The reference hashes are expected to be identical across platforms; per-platform entries exist to make platform provenance explicit and ease debugging if a divergence is detected by CI.
 
+## Streaming determinism (Phase E)
+
+- Canonical event schema (NDJSON per line): { v:int, seq:uint64, src:string, eid:string, kind:string, ts_ms:int64, payload:object }
+  - kind ∈ {"symbol","numeric","vector","label"}
+  - payload by kind: {sym:string} | {val:number} | {vec:[number,...]} | {label:string}
+- Total-order ingestion invariant: processing is equivalent to ingesting events sorted by (seq asc, src asc, eid asc). ts_ms is informational only.
+- Chunking/interleave invariance: For a fixed canonical stream and seed, final state and checkpoints are identical for chunk sizes {1,8,64,randomized} and for pre-merged vs sorted-merge ingestion.
+- Epoch/window boundaries: Deterministic checkpoints every K events (K=16 in tests). No implicit flushes elsewhere.
+- Idempotency: duplicate (seq,src,eid) is processed at most once (tests ensure duplicate lines cause no net change).
+- Vector normalization: vector payloads are accepted at arbitrary length; encoders handle length deterministically (tests use truncation/padding rule in harness where needed).
+- Backends/platforms parity: Results match across default (SIMD) and force-scalar builds and across ubuntu-latest, windows-2022, macos-14.
+- Golden artifacts:
+  - tests/golden/streaming_events.ndjson: canonical stream (fixed seed)
+  - tests/golden/streaming_hashes.json: reference 64-bit FNV-1a hashes of checkpoint and final states
+
+### Regenerating streaming hashes
+1) Build tests:
+   - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+   - cmake --build build --config Release --parallel 4 --target streaming_determinism_tests
+2) Dump hashes using the disabled helper (includes checkpoints and final):
+   - build/tests/Release/streaming_determinism_tests --gtest_also_run_disabled_tests \
+     --gtest_filter=StreamingDeterminism.DISABLED_DumpStreamingHashes
+3) Update tests/golden/streaming_hashes.json with the emitted values. Keep identical across platforms.
+
+
 ## Perf CI variance-bounds and baseline hygiene (Phase D)
 
 - Variance-bounds enforcement (in validator): stdev/mean thresholds per OS when samples ≥ 3

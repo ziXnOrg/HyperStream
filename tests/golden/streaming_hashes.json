@@ -1,0 +1,23 @@
+{
+  "D256": {
+    "simd": {
+      "checkpoints": [
+        "0x7d6ca83b6aa93643",
+        "0xc581eaed6ec4c0b1",
+        "0x59752f391a308ee3",
+        "0x25e7cf02ab9960fb"
+      ],
+      "final": "0x25e7cf02ab9960fb"
+    },
+    "scalar": {
+      "checkpoints": [
+        "0x7d6ca83b6aa93643",
+        "0xc581eaed6ec4c0b1",
+        "0x59752f391a308ee3",
+        "0x25e7cf02ab9960fb"
+      ],
+      "final": "0x25e7cf02ab9960fb"
+    }
+  }
+}
+

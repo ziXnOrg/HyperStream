@@ -38,7 +38,7 @@ jobs:
 
       - name: Run golden + determinism tests (SIMD/default)
         run: |
-          ctest -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism)"
+          ctest -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism|StreamingDeterminism)"
         shell: bash
 
       - name: Configure (Release, force scalar)
@@ -53,7 +53,7 @@ jobs:
 
       - name: Run golden + determinism tests (force scalar)
         run: |
-          ctest --test-dir build_scalar -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism)"
+          ctest --test-dir build_scalar -C Release --output-on-failure -R "(GoldenSerialization|EncoderDeterminism|StreamingDeterminism)"
         shell: bash
 
       - name: Record provenance

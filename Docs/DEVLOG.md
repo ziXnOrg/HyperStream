@@ -892,3 +892,19 @@ Notes:
   - tests/streaming_determinism_tests.cc, tests/golden/streaming_events.ndjson, tests/golden/streaming_hashes.json
   - Docs: Reproducibility.md (Streaming determinism) and optional Docs/Temporal.md
   - CI: extend golden-compat to include streaming determinism with provenance
+
+
+### 2025-10-10 — Phase E: Temporal/Streaming determinism — COMPLETE
+
+- PR: #37 (Phase E — Streaming determinism (tests/CI/docs-only)) merged to main; feature branch deleted.
+- Deliverables
+  - Tests: `tests/streaming_determinism_tests.cc` covering chunking invariance {1,8,64,random}, interleave parity (premerged vs sorted-merge), out-of-order arrival with bounded reorder, epoch/window checkpoints at K=16, and golden parity assertions
+  - Goldens: `tests/golden/streaming_events.ndjson` (canonical NDJSON stream) and `tests/golden/streaming_hashes.json` (checkpoints + final, D=256)
+  - CI: golden-compat workflow now runs StreamingDeterminism in both default (SIMD) and force-scalar builds with provenance
+  - Docs: `Docs/Reproducibility.md` updated with streaming schema, invariants, flush boundaries, and golden regeneration steps
+- Determinism decisions
+  - Total-order ingestion defined as `(seq, src, eid)`; `ts_ms` is provenance only
+  - Checkpoints every K=16 events; 64-bit FNV-1a computed over finalized cluster state with a small prototype-state mix to increase coverage
+  - Backend parity: hashes identical for default (SIMD) and force-scalar builds across ubuntu-latest, windows-2022, macos-14
+- Notes
+  - CI: golden-compat matrix green across all OSes for the merge commit; perf and capability checks also green on windows/macos; ubuntu perf job may be subject to variance but does not affect determinism guarantees

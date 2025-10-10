@@ -406,19 +406,22 @@ TEST(SnapshotRestore, DISABLED_Parity_MultipleSnapshotPoints) {
       Pipeline pref; pref.K = K;
       for (int i2 = 0; i2 < N; ++i2) pref.Process(ord[i2]);
       EXPECT_EQ(Hex64(pref.CheckpointHash()), exp_chk_hex[0]);
-      Pipeline pload = p0; // copy not allowed; so rebuild pload by re-loading snapshot again
+      const std::string prefixN = TestsDir() + "/golden/snapshot_" + std::to_string(N);
       Pipeline pload2; pload2.K = K;
       {
         std::ifstream is(prefixN + ".cluster.hser1", std::ios::binary);
+        ASSERT_TRUE(is.good());
         ASSERT_TRUE(LoadCluster(is, &pload2.cmem));
       }
       {
         std::ifstream is(prefixN + ".prototype.hser1", std::ios::binary);
+        ASSERT_TRUE(is.good());
         ASSERT_TRUE(LoadPrototype(is, &pload2.pmem));
       }
       // load sidecar again
       {
         std::ifstream is(prefixN + ".state.json", std::ios::binary);
+        ASSERT_TRUE(is.good());
         std::ostringstream ss; ss << is.rdbuf(); const std::string s2 = ss.str();
         auto m2 = s2.find("\"mix\":\""); std::size_t st = m2 + 7; if (st < s2.size() && s2[st] == '"') ++st; auto en = s2.find('"', st);
         const std::string mix_hex2 = s2.substr(st, en - st); pload2.mix = std::strtoull(mix_hex2.c_str()+2, nullptr, 16);
@@ -436,8 +439,8 @@ TEST(SnapshotRestore, DISABLED_Parity_MultipleSnapshotPoints) {
         const auto h_ref = pref.CheckpointHash();
         const auto h_res = pload2.CheckpointHash();
         if (h_ref != h_res) {
-          std::printf("diverge at t=%d seq=%llu src=%d eid=%llu h_ref=%s h_res=%s\n", t,
-                      (unsigned long long)ord[t].seq, (int)ord[t].src, (unsigned long long)ord[t].eid,
+          std::printf("diverge at t=%d seq=%llu src=%s eid=%s h_ref=%s h_res=%s\n", t,
+                      (unsigned long long)ord[t].seq, ord[t].src.c_str(), ord[t].eid.c_str(),
                       Hex64(h_ref).c_str(), Hex64(h_res).c_str());
           break;
         }

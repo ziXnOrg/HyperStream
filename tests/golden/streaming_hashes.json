@@ -17,7 +17,8 @@
         "0x25e7cf02ab9960fb"
       ],
       "final": "0x25e7cf02ab9960fb"
-    }
+    },
+    "snapshot_points": [16, 32, 48]
   }
 }
 

@@ -908,3 +908,18 @@ Notes:
   - Backend parity: hashes identical for default (SIMD) and force-scalar builds across ubuntu-latest, windows-2022, macos-14
 - Notes
   - CI: golden-compat matrix green across all OSes for the merge commit; perf and capability checks also green on windows/macos; ubuntu perf job may be subject to variance but does not affect determinism guarantees
+
+
+### 2025-10-10 — Phase F: Streaming snapshot/restore reproducibility — KICKOFF
+
+- Issue: #39 — Phase F — Streaming snapshot/restore reproducibility (tests/CI/docs-first)
+- Branch: feat/phase-f-snapshot-restore-20251010
+- Scope: tests/CI/docs-only; zero external deps; reuse HSER1 for Prototype/Cluster; add minimal sidecar for non-memory state (last_obs, mix) if needed
+- Goals (acceptance criteria summary):
+  - Snapshot/resume parity: snapshot at N and resume at N+1 yields identical checkpoints/final hash as uninterrupted run
+  - Multiple N ∈ {16, 32, 48}
+  - Cross-platform/backend parity: portable across ubuntu-latest, windows-2022, macos-14; default (SIMD) and force-scalar produce identical results
+  - Golden fixtures committed: HSER1 snapshots + snapshot metadata in streaming_hashes.json
+  - CI: golden-compat updated to include SnapshotRestore tests (both default and force-scalar)
+  - Docs: Reproducibility.md gains Snapshot/Restore subsection (format, invariants, regeneration)
+- Next: scaffold tests (snapshot_restore_tests.cc), add disabled dumper to generate fixtures, update CI and docs, open PR for scaffolding.

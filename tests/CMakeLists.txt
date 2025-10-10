@@ -376,3 +376,25 @@ else()
 endif()
 
 gtest_discover_tests(streaming_determinism_tests)
+
+
+# Snapshot/Restore tests
+add_executable(snapshot_restore_tests
+  snapshot_restore_tests.cc
+)
+
+target_compile_definitions(snapshot_restore_tests PRIVATE HYPERSTREAM_TESTS_DIR="${CMAKE_SOURCE_DIR}/tests")
+
+target_link_libraries(snapshot_restore_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(snapshot_restore_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(snapshot_restore_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(snapshot_restore_tests)

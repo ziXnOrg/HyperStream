@@ -100,3 +100,28 @@ Recompute and update SHA-256 in tests/golden/hser1/manifest.json if fixtures cha
   - runner_os, image_os, image_version, cmake_cxx_compiler, cmake_cxx_compiler_version
 - Workflow: SAMPLES ≥ 3; NDJSON from benches is aggregated by scripts/bench_check.py, which enforces tolerances and variance-bounds
 - Baseline refresh (windows-2022): when windows-latest advances images, keep perf job pinned to windows-2022 until deliberate re-baselining; capture fresh baselines from multiple runs and store medians
+
+
+## Snapshot/Restore (Phase F)
+
+- Snapshot composition (tests fixtures): for checkpoint boundaries N ∈ {16,32,48}, we commit
+  - tests/golden/snapshot_N.cluster.hser1 — HSER1 binary for ClusterMemory<256,4>
+  - tests/golden/snapshot_N.prototype.hser1 — HSER1 binary for PrototypeMemory<256,16>
+  - tests/golden/snapshot_N.state.json — tiny sidecar capturing non-memory harness state:
+    - mix: 64-bit FNV-1a rolling mix at snapshot time (hex string)
+    - last_obs: array of HyperVector words in hex (for binding label events after resume)
+- Invariants and guarantees
+  - Resuming from snapshot_N and ingesting events N+1..end reproduces the uninterrupted run’s checkpoint suffix and final hash exactly
+  - Portability: HSER1 fixtures and sidecar parse identically across ubuntu-latest, windows-2022, macos-14; results match for default (SIMD) and force-scalar builds
+  - Deterministic interval K=16; checkpoints at indices {16,32,48,64}
+- Golden metadata
+  - tests/golden/streaming_hashes.json includes backend-specific checkpoint arrays and final; tests compare resumed suffixes to the corresponding suffix of these arrays
+- Regenerating snapshot fixtures (local)
+  1) Build tests:
+     - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+     - cmake --build build --config Release --parallel 4 --target snapshot_restore_tests
+  2) Run disabled helper to write fixtures:
+     - build/tests/Release/snapshot_restore_tests --gtest_also_run_disabled_tests \
+       --gtest_filter=SnapshotRestore.DISABLED_DumpSnapshots
+  3) Inspect artifacts in tests/golden/: snapshot_{16,32,48}.cluster.hser1, snapshot_{16,32,48}.prototype.hser1, snapshot_{16,32,48}.state.json
+  4) Commit fixtures and verify Golden Compatibility CI is green on all platforms

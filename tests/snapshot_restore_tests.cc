@@ -288,7 +288,7 @@ TEST(SnapshotRestore, DISABLED_DumpSnapshots) {
 }
 
 // Verify that resuming from snapshots reproduces the golden suffix of checkpoints and final hash
-TEST(SnapshotRestore, DISABLED_Parity_MultipleSnapshotPoints) {
+TEST(SnapshotRestore, Parity_MultipleSnapshotPoints) {
   ::testing::Test::RecordProperty("backend", BackendId());
   auto base = LoadCanonicalEvents();
   std::vector<Event> ord = base; std::stable_sort(ord.begin(), ord.end(), TotalOrderLt);
@@ -374,10 +374,11 @@ TEST(SnapshotRestore, DISABLED_Parity_MultipleSnapshotPoints) {
       std::ifstream is(prefix + ".state.json", std::ios::binary);
       ASSERT_TRUE(is.good()) << "missing fixture: " << prefix << ".state.json";
       std::ostringstream ss; ss << is.rdbuf(); const std::string s = ss.str();
-      // parse mix
+      // parse mix (robust)
       auto mpos = s.find("\"mix\":\""); ASSERT_NE(mpos, std::string::npos);
-      auto q1 = s.find('"', mpos + 7); auto q2 = s.find('"', q1 + 1); ASSERT_NE(q1, std::string::npos); ASSERT_NE(q2, std::string::npos);
-      const std::string mix_hex = s.substr(q1 + 1, q2 - q1 - 1);
+      std::size_t start = mpos + 7; if (start < s.size() && s[start] == '"') ++start; // move past opening quote if present
+      auto end = s.find('"', start); ASSERT_NE(end, std::string::npos);
+      const std::string mix_hex = s.substr(start, end - start);
       p.mix = std::strtoull(mix_hex.c_str()+2, nullptr, 16);
       // parse last_obs
       auto lpos = s.find("\"last_obs\""); ASSERT_NE(lpos, std::string::npos);

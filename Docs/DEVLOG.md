@@ -923,3 +923,25 @@ Notes:
   - CI: golden-compat updated to include SnapshotRestore tests (both default and force-scalar)
   - Docs: Reproducibility.md gains Snapshot/Restore subsection (format, invariants, regeneration)
 - Next: scaffold tests (snapshot_restore_tests.cc), add disabled dumper to generate fixtures, update CI and docs, open PR for scaffolding.
+
+
+### 2025-10-10 — Phase F: Snapshot/Restore reproducibility — COMPLETE
+
+- PR: #40 (Phase F — Streaming snapshot/restore reproducibility (tests/CI/docs-only)) merged to main; feature branch deleted.
+- Deliverables
+  - Tests: `tests/snapshot_restore_tests.cc` with a streaming `Pipeline` harness and parity assertions at N ∈ {16,32,48}
+  - Goldens: `tests/golden/snapshot_{16,32,48}.cluster.hser1`, `.prototype.hser1`, and `.state.json` (sidecar: `mix`, `last_obs`)
+  - CI: Golden Compatibility job extended to run SnapshotRestore in both default (SIMD) and `-DHYPERSTREAM_FORCE_SCALAR=ON` builds across ubuntu-latest, windows-2022, macos-14
+  - Docs: `Docs/Reproducibility.md` Snapshot/Restore section documenting format, invariants, and regeneration
+- Notable technical decisions
+  - Sidecar JSON carries minimal harness state only: rolling `mix` (FNV-1a) and `last_obs` words; all memory persisted via HSER1
+  - Checkpoint timing aligned to invariant: after processing event N and mixing prototype word, `ClusterMemory::Finalize()` and then hash
+  - Parity gap root cause (ubuntu CI) was tests-only: GCC `-Wmisleading-indentation` in a disabled dumper path; fixed by explicit scoping
+  - Zero library code changes; tests/CI/docs-only as planned
+- Validation
+  - Snapshot@N resume produces the same CheckpointHash@N and final hash as uninterrupted run
+  - CI green on ubuntu-latest, windows-2022, macos-14 for both SIMD and force-scalar builds
+  - Local verification included force-scalar run on Windows Release
+- Evidence
+  - PR #40: https://github.com/ziXnOrg/HyperStream/pull/40
+  - Issue #39 (closed): Phase F tracking and acceptance criteria

@@ -257,6 +257,9 @@ TEST(SnapshotRestore, DISABLED_DumpSnapshots) {
   for (std::size_t i = 0; i < ord.size(); ++i) {
     p.Process(ord[i]); ++idx;
     if (idx == 16 || idx == 32 || idx == 48) {
+      // Important: call Finalize to mirror uninterrupted checkpoint side-effects, if any
+      HyperVector<Pipeline::D, bool> tmp; p.cmem.Finalize(1, &tmp);
+      std::printf("checkpoint@%zu immediate=%s\n", idx, Hex64(HashWords(tmp.Words().data(), tmp.Words().size()) ^ p.mix).c_str());
       const std::string prefix = TestsDir() + "/golden/snapshot_" + std::to_string(idx);
       // Save Cluster
       {
@@ -274,7 +277,9 @@ TEST(SnapshotRestore, DISABLED_DumpSnapshots) {
         const auto& words = p.last_obs.Words();
         os << "{\"mix\":\"" << Hex64(p.mix) << "\",\"last_obs\":[";
         for (std::size_t w = 0; w < words.size(); ++w) {
-          if (w) os << ","; char buf[19]; std::snprintf(buf, sizeof(buf), "\"0x%016llx\"", static_cast<unsigned long long>(words[w])); os << buf;
+          if (w) os << ","; char buf[21]; std::snprintf(buf, sizeof(buf), "\"0x%016llx\"", static_cast<unsigned long long>(words[w])); os << buf;
+          std::printf("emit last_obs[%zu]=%s\n", w, buf);
+
         }
         os << "]}";
       }
@@ -296,6 +301,57 @@ TEST(SnapshotRestore, DISABLED_Parity_MultipleSnapshotPoints) {
   ASSERT_GE(exp_chk_hex.size(), 4u); // K=16 over 64 events -> 4 checkpoints
 
   for (int N : points) {
+    // Diagnostic: verify snapshot_N immediate hash equals uninterrupted CheckpointHash@N
+    {
+      const int chk_index = (N/ K) - 1; // K=16, N in {16,32,48} -> {0,1,2}
+      const std::string prefixN = TestsDir() + "/golden/snapshot_" + std::to_string(N);
+      Pipeline p0; p0.K = K;
+      {
+        std::ifstream is(prefixN + ".cluster.hser1", std::ios::binary);
+        ASSERT_TRUE(is.good()) << "missing fixture: " << prefixN << ".cluster.hser1";
+        ASSERT_TRUE(LoadCluster(is, &p0.cmem));
+      }
+      {
+        std::ifstream is(prefixN + ".prototype.hser1", std::ios::binary);
+        ASSERT_TRUE(is.good()) << "missing fixture: " << prefixN << ".prototype.hser1";
+        ASSERT_TRUE(LoadPrototype(is, &p0.pmem));
+      }
+      {
+        std::ifstream is(prefixN + ".state.json", std::ios::binary);
+        std::ostringstream ss; ss << is.rdbuf(); const std::string s = ss.str();
+        auto mpos = s.find("\"mix\":\""); ASSERT_NE(mpos, std::string::npos);
+        std::size_t start = mpos + 7; if (start < s.size() && s[start] == '"') ++start; // move past opening quote
+        auto end = s.find('"', start); ASSERT_NE(end, std::string::npos);
+        const std::string mix_hex = s.substr(start, end - start);
+        p0.mix = std::strtoull(mix_hex.c_str()+2, nullptr, 16);
+        auto lpos = s.find("\"last_obs\""); ASSERT_NE(lpos, std::string::npos);
+        auto a = s.find('[', lpos); auto b = s.find(']', a); ASSERT_NE(a, std::string::npos); ASSERT_NE(b, std::string::npos);
+    std::printf("raw mix field: %.*s\n", (int)(end - start), s.c_str() + start);
+
+        std::size_t widx = 0; auto ppos = a + 1;
+        while (ppos < b && widx < p0.last_obs.Words().size()) {
+          auto q = s.find('"', ppos); if (q == std::string::npos || q >= b) break; auto qn = s.find('"', q + 1); if (qn == std::string::npos || qn > b) break;
+          const std::string hex = s.substr(q + 1, qn - q - 1);
+          p0.last_obs.Words()[widx++] = std::strtoull(hex.c_str()+2, nullptr, 16);
+          ppos = qn + 1;
+      // Print loaded last_obs words for verification
+      std::printf("loaded last_obs: %s,%s,%s,%s\n",
+                  Hex64(p0.last_obs.Words()[0]).c_str(),
+                  Hex64(p0.last_obs.Words()[1]).c_str(),
+                  Hex64(p0.last_obs.Words()[2]).c_str(),
+                  Hex64(p0.last_obs.Words()[3]).c_str());
+
+        }
+      }
+      // Extra diagnostics: compare cluster-only and mix
+      HyperVector<Pipeline::D, bool> out0; p0.cmem.Finalize(1, &out0);
+      const auto cluster_only_hex = Hex64(HashWords(out0.Words().data(), out0.Words().size()));
+      std::printf("diag N=%d cluster_only=%s mix=%s expected_chk=%s\n", N, cluster_only_hex.c_str(), Hex64(p0.mix).c_str(), exp_chk_hex[chk_index].c_str());
+
+      const auto snap_hash_hex = Hex64(p0.CheckpointHash());
+      EXPECT_EQ(snap_hash_hex, exp_chk_hex[chk_index]) << "snapshot@" << N << " != golden@" << N;
+    }
+
     // Load snapshot fixtures
 
 
@@ -345,6 +401,49 @@ TEST(SnapshotRestore, DISABLED_Parity_MultipleSnapshotPoints) {
     const std::uint64_t resumed_final = p.CheckpointHash();
 
     // Compare to golden suffix (positions > N)
+    // Step-by-step diagnostic for N==16: compare resumed vs uninterrupted after each event
+    if (N == 16) {
+      Pipeline pref; pref.K = K;
+      for (int i2 = 0; i2 < N; ++i2) pref.Process(ord[i2]);
+      EXPECT_EQ(Hex64(pref.CheckpointHash()), exp_chk_hex[0]);
+      Pipeline pload = p0; // copy not allowed; so rebuild pload by re-loading snapshot again
+      Pipeline pload2; pload2.K = K;
+      {
+        std::ifstream is(prefixN + ".cluster.hser1", std::ios::binary);
+        ASSERT_TRUE(LoadCluster(is, &pload2.cmem));
+      }
+      {
+        std::ifstream is(prefixN + ".prototype.hser1", std::ios::binary);
+        ASSERT_TRUE(LoadPrototype(is, &pload2.pmem));
+      }
+      // load sidecar again
+      {
+        std::ifstream is(prefixN + ".state.json", std::ios::binary);
+        std::ostringstream ss; ss << is.rdbuf(); const std::string s2 = ss.str();
+        auto m2 = s2.find("\"mix\":\""); std::size_t st = m2 + 7; if (st < s2.size() && s2[st] == '"') ++st; auto en = s2.find('"', st);
+        const std::string mix_hex2 = s2.substr(st, en - st); pload2.mix = std::strtoull(mix_hex2.c_str()+2, nullptr, 16);
+        auto l2 = s2.find("\"last_obs\""); auto a2 = s2.find('[', l2); auto b2 = s2.find(']', a2);
+        std::size_t wi = 0; auto pp = a2 + 1; while (pp < b2 && wi < pload2.last_obs.Words().size()) {
+          auto q = s2.find('"', pp); if (q == std::string::npos || q >= b2) break; auto qn = s2.find('"', q + 1); if (qn == std::string::npos || qn > b2) break;
+          const std::string hex = s2.substr(q + 1, qn - q - 1);
+          pload2.last_obs.Words()[wi++] = std::strtoull(hex.c_str()+2, nullptr, 16);
+          pp = qn + 1;
+        }
+      }
+      for (int t = N; t < N + 16 && t < (int)ord.size(); ++t) {
+        pref.Process(ord[t]);
+        pload2.Process(ord[t]);
+        const auto h_ref = pref.CheckpointHash();
+        const auto h_res = pload2.CheckpointHash();
+        if (h_ref != h_res) {
+          std::printf("diverge at t=%d seq=%llu src=%d eid=%llu h_ref=%s h_res=%s\n", t,
+                      (unsigned long long)ord[t].seq, (int)ord[t].src, (unsigned long long)ord[t].eid,
+                      Hex64(h_ref).c_str(), Hex64(h_res).c_str());
+          break;
+        }
+      }
+    }
+
     const std::size_t total_checkpoints = exp_chk_hex.size();
     const std::size_t first_chk_index = static_cast<std::size_t>((N / K)); // 1-based multiples; index is 0-based
     ASSERT_EQ(resumed_chk.size(), total_checkpoints - first_chk_index);

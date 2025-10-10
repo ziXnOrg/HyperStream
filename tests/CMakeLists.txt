@@ -355,3 +355,24 @@ else()
 endif()
 
 gtest_discover_tests(encoder_determinism_tests)
+
+# Streaming determinism tests
+add_executable(streaming_determinism_tests
+  streaming_determinism_tests.cc
+)
+
+target_compile_definitions(streaming_determinism_tests PRIVATE HYPERSTREAM_TESTS_DIR="${CMAKE_SOURCE_DIR}/tests")
+
+target_link_libraries(streaming_determinism_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(streaming_determinism_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(streaming_determinism_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(streaming_determinism_tests)

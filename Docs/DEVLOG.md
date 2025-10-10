@@ -878,3 +878,17 @@ Notes:
   - Added provenance echo step and artifact upload of perf_agg.ndjson
 - Docs: Reproducibility.md updated with thresholds and windows-2022 baseline refresh procedure
 - Next: Open PR and validate CI across ubuntu-latest, windows-2022, macos-14
+
+
+### 2025-10-10 — Phase E: Temporal/Streaming determinism — KICKOFF
+
+- Branch: feat/phase-e-streaming-determinism-20251010
+- Scope: tests/CI/docs-first; zero external deps; no library changes unless tests surface an ambiguity that requires a minimal, backward-compatible hook
+- Goals:
+  - Prove chunking/interleave invariance for a canonical event stream and seed
+  - Parity across OS/compilers and SIMD vs scalar
+  - Golden fixtures (events NDJSON) + reference hashes; CI coverage in golden-compat (both default and force-scalar)
+- Deliverables:
+  - tests/streaming_determinism_tests.cc, tests/golden/streaming_events.ndjson, tests/golden/streaming_hashes.json
+  - Docs: Reproducibility.md (Streaming determinism) and optional Docs/Temporal.md
+  - CI: extend golden-compat to include streaming determinism with provenance

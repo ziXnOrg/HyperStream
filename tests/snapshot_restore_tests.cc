@@ -277,9 +277,13 @@ TEST(SnapshotRestore, DISABLED_DumpSnapshots) {
         const auto& words = p.last_obs.Words();
         os << "{\"mix\":\"" << Hex64(p.mix) << "\",\"last_obs\":[";
         for (std::size_t w = 0; w < words.size(); ++w) {
-          if (w) os << ","; char buf[21]; std::snprintf(buf, sizeof(buf), "\"0x%016llx\"", static_cast<unsigned long long>(words[w])); os << buf;
+          if (w) {
+            os << ",";
+          }
+          char buf[21];
+          std::snprintf(buf, sizeof(buf), "\"0x%016llx\"", static_cast<unsigned long long>(words[w]));
+          os << buf;
           std::printf("emit last_obs[%zu]=%s\n", w, buf);
-
         }
         os << "]}";
       }

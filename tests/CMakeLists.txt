@@ -143,6 +143,11 @@ target_link_libraries(serialization_tests PRIVATE
   gtest_main
 )
 
+# Provide absolute path to tests dir for file-based goldens opened by serialization_tests
+# e.g., HYPERSTREAM_TESTS_DIR="C:/path/to/repo/tests"
+target_compile_definitions(serialization_tests PRIVATE HYPERSTREAM_TESTS_DIR="${CMAKE_SOURCE_DIR}/tests")
+
+
 if(MSVC)
   target_compile_options(serialization_tests PRIVATE /W4 /WX)
 else()

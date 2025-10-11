@@ -4,6 +4,10 @@
 #include <fstream>
 
 
+// Force v1 writer for golden tests to match committed v1 fixtures
+#define HYPERSTREAM_HSER1_WRITE_V1
+
+
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/memory/associative.hpp"
 #include "hyperstream/io/serialization.hpp"

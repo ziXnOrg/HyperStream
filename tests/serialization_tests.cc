@@ -7,6 +7,11 @@
 #include "hyperstream/memory/associative.hpp"
 #include "hyperstream/io/serialization.hpp"
 
+
+#ifndef HYPERSTREAM_TESTS_DIR
+#define HYPERSTREAM_TESTS_DIR "tests"
+#endif
+
 namespace {
 
 using hyperstream::core::HyperVector;
@@ -184,7 +189,8 @@ TEST(Serialization_BackCompat, Load_V1_Goldens) {
   {
     static constexpr std::size_t D = 128;
     static constexpr std::size_t C = 4;
-    std::ifstream f("tests/golden/hser1/prototype_d128_c4.hser1", std::ios::binary);
+    const std::string path_proto = std::string(HYPERSTREAM_TESTS_DIR) + "/golden/hser1/prototype_d128_c4.hser1";
+    std::ifstream f(path_proto, std::ios::binary);
     ASSERT_TRUE(static_cast<bool>(f));
     PrototypeMemory<D, C> mem;
     ASSERT_TRUE(LoadPrototype(f, &mem));
@@ -194,7 +200,8 @@ TEST(Serialization_BackCompat, Load_V1_Goldens) {
   {
     static constexpr std::size_t D = 96;
     static constexpr std::size_t C = 3;
-    std::ifstream f("tests/golden/hser1/cluster_d96_c3.hser1", std::ios::binary);
+    const std::string path_cluster = std::string(HYPERSTREAM_TESTS_DIR) + "/golden/hser1/cluster_d96_c3.hser1";
+    std::ifstream f(path_cluster, std::ios::binary);
     ASSERT_TRUE(static_cast<bool>(f));
     ClusterMemory<D, C> mem;
     ASSERT_TRUE(LoadCluster(f, &mem));

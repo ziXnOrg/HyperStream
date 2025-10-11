@@ -201,3 +201,26 @@ TEST(Serialization_BackCompat, Load_V1_Goldens) {
     ASSERT_LE(mem.size(), C);
   }
 }
+
+
+TEST(Serialization_V11, Cluster_CorruptionDetected) {
+  static constexpr std::size_t D = 96;
+  static constexpr std::size_t C = 3;
+  ClusterMemory<D, C> mem;
+  // Seed a few clusters via Learn path
+  {
+    HyperVector<D, bool> a; a.Clear(); for (std::size_t i = 0; i < D; i += 3) a.SetBit(i, true);
+    HyperVector<D, bool> b; b.Clear(); for (std::size_t i = 1; i < D; i += 3) b.SetBit(i, true);
+    ASSERT_TRUE(mem.Update(10, a));
+    ASSERT_TRUE(mem.Update(20, b));
+  }
+  std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+  ASSERT_TRUE(SaveCluster(ss, mem));
+  std::string blob = ss.str();
+  struct LocalHeader { char magic[5]; unsigned char kind; std::uint64_t dim, cap, size; };
+  ASSERT_GE(blob.size(), sizeof(LocalHeader) + 16);
+  blob[sizeof(LocalHeader) + 2] ^= 0x01; // flip a payload byte
+  std::stringstream bad(std::ios::in | std::ios::out | std::ios::binary);
+  bad.write(blob.data(), static_cast<std::streamsize>(blob.size()));
+  ClusterMemory<D, C> out;
+  EXPECT_FALSE(LoadCluster(bad, &out));}

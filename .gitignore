@@ -43,7 +43,6 @@ compile_commands.json
 .vscode/
 .idea/
 .clangd/
-.clang-tidy
 .cache/
 .DS_Store
 Thumbs.db
@@ -52,9 +51,6 @@ Thumbs.db
 .windsurf/
 .cursor/
 
-# Keep documentation private
-Docs/
-docs/
 
 # Build trees and generated files
 .build/*
@@ -99,7 +95,59 @@ build_vs2022_x64/
 build-msvc/
 build-msvc2/
 # Benchmark NDJSON outputs
-am.ndjson
-cluster.ndjson
+*.ndjson
 # Local helper files
 COMMIT_MSG.txt
+
+# Professional C++ repo additions
+# IDE/editor caches
+.ccls-cache/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS-specific
+desktop.ini
+._*
+.Trashes
+.Spotlight-V100
+
+# CMake/IDE build trees and local presets
+cmake-build-*/
+CMakeUserPresets.json
+
+# Coverage / profiling
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+default.profraw
+*.pgd
+*.pgc
+
+# Temp / merge leftovers
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+*.swn
+*.orig
+*.rej
+# Optional: uncomment if logs should never be tracked
+# *.log
+
+# Debug symbol bundles / crash dumps
+*.dSYM/
+*.dmp
+
+# Visual Studio databases
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.sdf
+*.opensdf

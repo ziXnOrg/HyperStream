@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_ci/tests/policy_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_ci/tests/policy_tests[1]_tests.cmake")
-else()
-  add_test(policy_tests_NOT_BUILT policy_tests_NOT_BUILT)
-endif()

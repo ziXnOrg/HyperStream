@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_scalar/tests/encoder_determinism_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_scalar/tests/encoder_determinism_tests[1]_tests.cmake")
-else()
-  add_test(encoder_determinism_tests_NOT_BUILT encoder_determinism_tests_NOT_BUILT)
-endif()

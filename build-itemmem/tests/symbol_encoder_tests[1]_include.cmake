@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build-itemmem/tests/symbol_encoder_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build-itemmem/tests/symbol_encoder_tests[1]_tests.cmake")
-else()
-  add_test(symbol_encoder_tests_NOT_BUILT symbol_encoder_tests_NOT_BUILT)
-endif()

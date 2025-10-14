@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_ninja_clangcl/tests/core_ops_constexpr_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_ninja_clangcl/tests/core_ops_constexpr_tests[1]_tests.cmake")
-else()
-  add_test(core_ops_constexpr_tests_NOT_BUILT core_ops_constexpr_tests_NOT_BUILT)
-endif()

@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_capi/tests/serialization_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_capi/tests/serialization_tests[1]_tests.cmake")
-else()
-  add_test(serialization_tests_NOT_BUILT serialization_tests_NOT_BUILT)
-endif()

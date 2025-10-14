@@ -83,3 +83,20 @@ benchmarks/**/Debug/*
 tests/**/Release/*
 tests/**/Debug/*
 
+
+
+# Additional build trees (non-dot-prefixed) and artifacts to ignore
+.augment/rules/imported/rules/
+build-itemmem/
+build_capi/
+build_ci/
+build_ninja_clangcl/
+build_ninja_msvc/
+build_ninja_msvc2/
+build_scalar/
+build_vs2022_x64/
+# Benchmark NDJSON outputs
+am.ndjson
+cluster.ndjson
+# Local helper files
+COMMIT_MSG.txt

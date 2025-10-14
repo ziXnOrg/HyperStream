@@ -1,5 +1,0 @@
-add_test([=[SnapshotRestore.DumpSnapshots]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests/Release/snapshot_restore_tests.exe [==[--gtest_filter=SnapshotRestore.DISABLED_DumpSnapshots]==] --gtest_also_run_disabled_tests)
-set_tests_properties([=[SnapshotRestore.DumpSnapshots]=]  PROPERTIES DISABLED TRUE WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-add_test([=[SnapshotRestore.Parity_MultipleSnapshotPoints]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests/Release/snapshot_restore_tests.exe [==[--gtest_filter=SnapshotRestore.Parity_MultipleSnapshotPoints]==] --gtest_also_run_disabled_tests)
-set_tests_properties([=[SnapshotRestore.Parity_MultipleSnapshotPoints]=]  PROPERTIES WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-set(  snapshot_restore_tests_TESTS SnapshotRestore.DumpSnapshots SnapshotRestore.Parity_MultipleSnapshotPoints)

@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests/encoding_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests/encoding_tests[1]_tests.cmake")
-else()
-  add_test(encoding_tests_NOT_BUILT encoding_tests_NOT_BUILT)
-endif()

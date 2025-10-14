@@ -50,7 +50,14 @@ class PrototypeMemory {
     core::HyperVector<Dim, bool> hv;
   };
 
-  PrototypeMemory() = default;
+  // Heap-allocated storage to avoid stack overflow on Windows (1MB default stack limit).
+  // For large Capacity×Dim combinations (e.g., PrototypeMemory<10000, 1024> ≈ 1.23 MB),
+  // stack allocation exceeds platform limits. Heap allocation via std::vector provides:
+  // - Cross-platform compatibility (Windows/Linux/macOS)
+  // - RAII and exception safety
+  // - Zero runtime overhead for element access (contiguous memory, cache-friendly)
+  // - One-time allocation cost amortized over many Classify() operations
+  PrototypeMemory() : entries_(Capacity) {}
 
   bool Learn(std::uint64_t label, const core::HyperVector<Dim, bool>& hypervector) {
     if (size_ >= Capacity) {
@@ -117,7 +124,7 @@ class PrototypeMemory {
 
 
  private:
-  std::array<Entry, Capacity> entries_{};
+  std::vector<Entry> entries_;  // Heap-allocated; size == Capacity (pre-allocated in constructor)
   std::size_t size_ = 0;
 };
 
@@ -140,7 +147,12 @@ class PrototypeMemory {
 template <std::size_t Dim, std::size_t Capacity>
 class ClusterMemory {
  public:
-  ClusterMemory() = default;
+  // Heap-allocated storage to avoid stack overflow on Windows (1MB default stack limit).
+  // The sums_ array is particularly large: Capacity × Dim × sizeof(int) bytes.
+  // For example, ClusterMemory<65536, 16> requires ~4.2 MB for sums_ alone.
+  // Heap allocation via std::vector provides cross-platform compatibility and RAII.
+  // All vectors are value-initialized (zero-filled) to preserve deterministic behavior.
+  ClusterMemory() : labels_(Capacity), counts_(Capacity), sums_(Capacity * Dim) {}
 
   bool Update(std::uint64_t label, const core::HyperVector<Dim, bool>& hypervector) {
     int index = FindIndex(label);
@@ -245,9 +257,9 @@ class ClusterMemory {
     return -1;
   }
 
-  std::array<std::uint64_t, Capacity> labels_{};
-  std::array<int, Capacity> counts_{};
-  std::array<int, Capacity * Dim> sums_{};
+  std::vector<std::uint64_t> labels_;  // Heap-allocated; size == Capacity
+  std::vector<int> counts_;            // Heap-allocated; size == Capacity
+  std::vector<int> sums_;              // Heap-allocated; size == Capacity * Dim (largest allocation)
   std::size_t size_ = 0;
 };
 
@@ -270,7 +282,11 @@ class ClusterMemory {
 template <std::size_t Dim, std::size_t Capacity>
 class CleanupMemory {
  public:
-  CleanupMemory() = default;
+  // Heap-allocated storage to avoid stack overflow on Windows (1MB default stack limit).
+  // For large Capacity×Dim combinations (e.g., CleanupMemory<10000, 1024> ≈ 1.23 MB),
+  // stack allocation exceeds platform limits. Heap allocation via std::vector provides
+  // cross-platform compatibility and RAII.
+  CleanupMemory() : entries_(Capacity) {}
 
   bool Insert(const core::HyperVector<Dim, bool>& hypervector) {
     if (size_ >= Capacity) {
@@ -312,7 +328,7 @@ class CleanupMemory {
 
 
  private:
-  std::array<core::HyperVector<Dim, bool>, Capacity> entries_{};
+  std::vector<core::HyperVector<Dim, bool>> entries_;  // Heap-allocated; size == Capacity
   std::size_t size_ = 0;
 };
 

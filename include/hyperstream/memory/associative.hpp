@@ -10,6 +10,7 @@
 //              paths; inputs validated for raw load; noexcept where safe.
 // Performance Considerations: Packed 64-bit words for HV; arrays for locality;
 //              saturating counters optional via compile-time flag.
+//              Hybrid allocation: stack for small sizes, heap for large.
 // Examples:    See io/serialization.hpp for persistence helpers.
 // =============================================================================
 #include <array>
@@ -17,12 +18,63 @@
 #include <cstdint>
 #include <memory>
 #include <type_traits>
+#include <vector>
 
 #include "hyperstream/config.hpp"
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 
 namespace hyperstream::memory {
+
+// =============================================================================
+// Hybrid Allocation Strategy
+// =============================================================================
+// Windows default stack size: 1 MB (1,048,576 bytes)
+// Linux/macOS default: 8 MB
+// Conservative threshold: 512 KB (524,288 bytes) to leave headroom for:
+// - Other stack variables
+// - Nested function calls
+// - Compiler padding/alignment
+//
+// For sizes ≤ 512 KB: use std::array (stack allocation, zero overhead)
+// For sizes > 512 KB: use std::vector (heap allocation, one-time cost)
+//
+// This ensures:
+// - Common small/medium dimensions remain stack-allocated (optimal performance)
+// - Large dimensions use heap (cross-platform compatibility)
+// - No Windows-specific workarounds needed
+// =============================================================================
+
+namespace detail {
+
+// Threshold for hybrid allocation: 512 KB
+inline constexpr std::size_t kHybridAllocThresholdBytes = 512U * 1024U;
+
+// Helper: choose std::array or std::vector based on compile-time size
+template <typename T, std::size_t N>
+struct HybridStorage {
+  static constexpr std::size_t kTotalBytes = sizeof(T) * N;
+  static constexpr bool kUseStack = (kTotalBytes <= kHybridAllocThresholdBytes);
+
+  using type = std::conditional_t<kUseStack, std::array<T, N>, std::vector<T>>;
+};
+
+template <typename T, std::size_t N>
+using HybridStorageT = typename HybridStorage<T, N>::type;
+
+// Helper: initialize storage (no-op for std::array, reserve for std::vector)
+template <typename T, std::size_t N>
+inline auto MakeHybridStorage() {
+  if constexpr (HybridStorage<T, N>::kUseStack) {
+    return std::array<T, N>{};  // Value-initialized (zero-filled)
+  } else {
+    std::vector<T> vec;
+    vec.resize(N);  // Pre-allocate and value-initialize
+    return vec;
+  }
+}
+
+}  // namespace detail
 
 /**
  * @brief Fixed-capacity prototype associative memory (nearest neighbour by Hamming).
@@ -41,6 +93,11 @@ namespace hyperstream::memory {
  * Complexity (binary HyperVector):
  * - Learn: O(1) append
  * - Classify: O(size * Dim/64) Hamming distance over packed uint64_t words
+ *
+ * Memory allocation strategy:
+ * - Uses hybrid allocation (stack for small sizes ≤ 512 KB, heap for large)
+ * - Common dimensions (e.g., 10000×256) remain stack-allocated for optimal performance
+ * - Large dimensions (e.g., 10000×1024) use heap to avoid Windows stack overflow
  */
 template <std::size_t Dim, std::size_t Capacity>
 class PrototypeMemory {
@@ -50,14 +107,7 @@ class PrototypeMemory {
     core::HyperVector<Dim, bool> hv;
   };
 
-  // Heap-allocated storage to avoid stack overflow on Windows (1MB default stack limit).
-  // For large Capacity×Dim combinations (e.g., PrototypeMemory<10000, 1024> ≈ 1.23 MB),
-  // stack allocation exceeds platform limits. Heap allocation via std::vector provides:
-  // - Cross-platform compatibility (Windows/Linux/macOS)
-  // - RAII and exception safety
-  // - Zero runtime overhead for element access (contiguous memory, cache-friendly)
-  // - One-time allocation cost amortized over many Classify() operations
-  PrototypeMemory() : entries_(Capacity) {}
+  PrototypeMemory() : entries_(detail::MakeHybridStorage<Entry, Capacity>()) {}
 
   bool Learn(std::uint64_t label, const core::HyperVector<Dim, bool>& hypervector) {
     if (size_ >= Capacity) {
@@ -124,7 +174,7 @@ class PrototypeMemory {
 
 
  private:
-  std::vector<Entry> entries_;  // Heap-allocated; size == Capacity (pre-allocated in constructor)
+  detail::HybridStorageT<Entry, Capacity> entries_;
   std::size_t size_ = 0;
 };
 
@@ -143,16 +193,19 @@ class PrototypeMemory {
  * Complexity:
  * - Update:   O(Dim) to adjust counters per bit
  * - Finalize: O(Dim) to threshold counters into a binary HyperVector
+ *
+ * Memory allocation strategy:
+ * - Uses hybrid allocation (stack for small sizes ≤ 512 KB, heap for large)
+ * - The sums_ array is the largest: Capacity × Dim × sizeof(int) bytes
+ * - Example: ClusterMemory<10000, 16> ≈ 625 KB → heap; <65536, 16> ≈ 4.2 MB → heap
  */
 template <std::size_t Dim, std::size_t Capacity>
 class ClusterMemory {
  public:
-  // Heap-allocated storage to avoid stack overflow on Windows (1MB default stack limit).
-  // The sums_ array is particularly large: Capacity × Dim × sizeof(int) bytes.
-  // For example, ClusterMemory<65536, 16> requires ~4.2 MB for sums_ alone.
-  // Heap allocation via std::vector provides cross-platform compatibility and RAII.
-  // All vectors are value-initialized (zero-filled) to preserve deterministic behavior.
-  ClusterMemory() : labels_(Capacity), counts_(Capacity), sums_(Capacity * Dim) {}
+  ClusterMemory()
+      : labels_(detail::MakeHybridStorage<std::uint64_t, Capacity>()),
+        counts_(detail::MakeHybridStorage<int, Capacity>()),
+        sums_(detail::MakeHybridStorage<int, Capacity * Dim>()) {}
 
   bool Update(std::uint64_t label, const core::HyperVector<Dim, bool>& hypervector) {
     int index = FindIndex(label);
@@ -257,9 +310,9 @@ class ClusterMemory {
     return -1;
   }
 
-  std::vector<std::uint64_t> labels_;  // Heap-allocated; size == Capacity
-  std::vector<int> counts_;            // Heap-allocated; size == Capacity
-  std::vector<int> sums_;              // Heap-allocated; size == Capacity * Dim (largest allocation)
+  detail::HybridStorageT<std::uint64_t, Capacity> labels_;
+  detail::HybridStorageT<int, Capacity> counts_;
+  detail::HybridStorageT<int, Capacity * Dim> sums_;
   std::size_t size_ = 0;
 };
 
@@ -278,15 +331,15 @@ class ClusterMemory {
  * Complexity:
  * - Insert:  O(1)
  * - Restore: O(size * Dim/64) Hamming distance over packed uint64_t words
+ *
+ * Memory allocation strategy:
+ * - Uses hybrid allocation (stack for small sizes ≤ 512 KB, heap for large)
+ * - Example: CleanupMemory<10000, 256> ≈ 316 KB → stack; <10000, 1024> ≈ 1.23 MB → heap
  */
 template <std::size_t Dim, std::size_t Capacity>
 class CleanupMemory {
  public:
-  // Heap-allocated storage to avoid stack overflow on Windows (1MB default stack limit).
-  // For large Capacity×Dim combinations (e.g., CleanupMemory<10000, 1024> ≈ 1.23 MB),
-  // stack allocation exceeds platform limits. Heap allocation via std::vector provides
-  // cross-platform compatibility and RAII.
-  CleanupMemory() : entries_(Capacity) {}
+  CleanupMemory() : entries_(detail::MakeHybridStorage<core::HyperVector<Dim, bool>, Capacity>()) {}
 
   bool Insert(const core::HyperVector<Dim, bool>& hypervector) {
     if (size_ >= Capacity) {
@@ -328,7 +381,7 @@ class CleanupMemory {
 
 
  private:
-  std::vector<core::HyperVector<Dim, bool>> entries_;  // Heap-allocated; size == Capacity
+  detail::HybridStorageT<core::HyperVector<Dim, bool>, Capacity> entries_;
   std::size_t size_ = 0;
 };
 

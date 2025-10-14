@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\x64\Release\ZERO_CHECK</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\benchmarks\Release\am_bench.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\associative_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\backend_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\benchmarks\Release\bind_bench.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\capability_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\benchmarks\Release\cluster_bench.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\benchmarks\Release\config_bench.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\config_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\core_ops_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\dispatch_property_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\dispatch_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\edge_case_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\encoding_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\forced_scalar_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\benchmarks\Release\hamming_bench.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\benchmarks\Release\permute_bench.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\policy_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\tests\Release\wide_counter_smoke_tests.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\cisco\Desktop\dev\research\HyperStream\build\x64\Release\ALL_BUILD</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles />
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
+</Project>

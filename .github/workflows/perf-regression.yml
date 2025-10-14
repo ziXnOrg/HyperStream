@@ -94,23 +94,35 @@ jobs:
           grep -E 'CMAKE_CXX_COMPILER:|CMAKE_CXX_COMPILER_VERSION:|CMAKE_CXX_FLAGS:|CMAKE_BUILD_TYPE:' build/CMakeCache.txt || true
         shell: bash
 
-      - name: Run benches (NDJSON)
-        id: run_benches
+      # Windows-specific execution: use PowerShell call operator '&' for .exe invocation and preserve
+      # stdout redirection semantics for NDJSON. This avoids relying on bash shims on Windows runners.
+      - name: Run benches (NDJSON - Windows)
+        if: runner.os == 'Windows'
+        id: run_benches_windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $AM = "build/benchmarks/Release/am_bench.exe"
+          $CL = "build/benchmarks/Release/cluster_bench.exe"
+          Write-Host "Using $AM and $CL"
+          & $AM --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES | Out-File -FilePath am.ndjson -Encoding utf8
+          & $CL --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES | Out-File -FilePath cluster.ndjson -Encoding utf8
+          Write-Host ("am.ndjson lines: {0}" -f ((Get-Content am.ndjson).Count))
+          Write-Host ("cluster.ndjson lines: {0}" -f ((Get-Content cluster.ndjson).Count))
+
+      - name: Run benches (NDJSON - Unix)
+        if: runner.os != 'Windows'
+        id: run_benches_unix
+        shell: bash
         run: |
           set -e
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            AM=build/benchmarks/Release/am_bench.exe
-            CL=build/benchmarks/Release/cluster_bench.exe
-          else
-            AM=build/benchmarks/am_bench
-            CL=build/benchmarks/cluster_bench
-          fi
+          AM=build/benchmarks/am_bench
+          CL=build/benchmarks/cluster_bench
           echo "Using $AM and $CL"
           "$AM" --json --warmup_ms=$WARMUP_MS --measure_ms=$MEASURE_MS --samples=$SAMPLES > am.ndjson
           "$CL" --json --warmup_ms=$WARMUP_MS --measure_ms=$MEASURE_MS --samples=$SAMPLES > cluster.ndjson
           echo "am.ndjson lines: $(wc -l < am.ndjson || echo 0)"
           echo "cluster.ndjson lines: $(wc -l < cluster.ndjson || echo 0)"
-        shell: bash
 
       - name: Save NDJSON artifacts
         uses: actions/upload-artifact@v4

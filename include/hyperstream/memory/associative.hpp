@@ -27,28 +27,42 @@
 namespace hyperstream::memory {
 
 // =============================================================================
-// Hybrid Allocation Strategy
+// Hybrid Allocation Strategy (Platform-Specific)
 // =============================================================================
 // Windows default stack size: 1 MB (1,048,576 bytes)
 // Linux/macOS default: 8 MB
-// Conservative threshold: 512 KB (524,288 bytes) to leave headroom for:
-// - Other stack variables
-// - Nested function calls
-// - Compiler padding/alignment
 //
-// For sizes ≤ 512 KB: use std::array (stack allocation, zero overhead)
-// For sizes > 512 KB: use std::vector (heap allocation, one-time cost)
+// Platform-specific thresholds optimize for each platform's stack limits:
+//
+// Windows (_WIN32):
+//   - Conservative threshold: 512 KB (524,288 bytes)
+//   - Leaves headroom for other stack variables, nested calls, padding
+//   - Ensures safety on 1 MB stack limit
+//
+// Linux/macOS (all other platforms):
+//   - Aggressive threshold: 4 MB (4,194,304 bytes)
+//   - Leverages 8 MB default stack limit
+//   - Maximizes performance by keeping large configs stack-allocated
+//
+// For sizes ≤ threshold: use std::array (stack allocation, zero overhead)
+// For sizes > threshold: use std::vector (heap allocation, one-time cost)
 //
 // This ensures:
-// - Common small/medium dimensions remain stack-allocated (optimal performance)
-// - Large dimensions use heap (cross-platform compatibility)
-// - No Windows-specific workarounds needed
+// - Windows: Safe (no stack overflow for any benchmark config)
+// - Linux/macOS: Optimal performance (stack allocation for all configs ≤ 4 MB)
+// - Cross-platform compatibility without sacrificing performance
 // =============================================================================
 
 namespace detail {
 
-// Threshold for hybrid allocation: 512 KB
-inline constexpr std::size_t kHybridAllocThresholdBytes = 512U * 1024U;
+// Platform-specific threshold for hybrid allocation
+#if defined(_WIN32)
+  // Windows: conservative 512 KB threshold (1 MB stack limit)
+  inline constexpr std::size_t kHybridAllocThresholdBytes = 512U * 1024U;
+#else
+  // Linux/macOS: aggressive 4 MB threshold (8 MB stack limit)
+  inline constexpr std::size_t kHybridAllocThresholdBytes = 4U * 1024U * 1024U;
+#endif
 
 // Helper: choose std::array or std::vector based on compile-time size
 template <typename T, std::size_t N>

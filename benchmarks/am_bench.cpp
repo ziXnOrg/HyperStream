@@ -18,6 +18,20 @@
 #include <intrin.h>
 #endif
 
+
+// Platform architecture detection macros for conditional backend blocks
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#define HS_X86_ARCH 1
+#else
+#define HS_X86_ARCH 0
+#endif
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define HS_ARM64_ARCH 1
+#else
+#define HS_ARM64_ARCH 0
+#endif
+
 #include "hyperstream/backend/policy.hpp"
 #include "hyperstream/config.hpp"
 #include "hyperstream/core/hypervector.hpp"
@@ -227,7 +241,7 @@ static void run_one_dim(const Settings& s) {
       s);
 #endif
 
-  // AVX2 distance functor
+  // NEON distance functor
 #if HS_ARM64_ARCH
   bench_am<Dim, 1024>(
       "AM/neon", 1024,

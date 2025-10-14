@@ -4,26 +4,31 @@
 
 ### Current State Analysis
 - **Completed**:
-  - Basic HyperVector class with bit-packing
-  - SIMD backends (AVX2/SSE2) for core operations
-  - Basic test infrastructure
+  - Core HyperVector (bool + typed) with bit-packing and word-wise permutation
+  - SIMD backends (AVX2/SSE2/NEON) for bind/hamming; runtime dispatch & policy
+  - Encoding: ItemMemory, SymbolEncoder, Thermometer, RandomProjection
+  - Associative memory: Prototype, Cluster, Cleanup with serialization (HSER1)
+  - HSER1 serialization v1/v1.1 with optional CRC trailer
+  - Per-file clang-tidy cleanup; C++17 nested namespaces; standardized module headers
+  - Tests: property-based, backend equality/determinism, snapshot/restore
+  - Benchmarks: bind/hamming/permute/AM/cluster; NDJSON output
+  - CI: build/test matrix, perf regression gates, golden determinism, backend parity
 
 - **In Progress**:
-  - Encoder implementations
-  - Associative memory
-  - Performance optimization
-  - Performance benchmarking
+  - Performance tuning (AVX2/SSE2 thresholds; further AVX2 tuning A/B)
+  - Documentation/ADRs (policy thresholds; memory layout invariants; Batch 3 API updates recorded in ADR-0001)
+  - Coverage increase toward ≥90%
 
 ### Validation Against Requirements
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-|<10k LOC core | ✅ On track | Current core: ~2.5k LOC |
-| No external deps | ✅ Maintained | Only STL and compiler intrinsics |
-| Cross-platform | ⚠️ Needs work | Windows/Unix support, MCU in progress |
-| Real-time capable | ⚠️ Needs validation | Requires performance testing |
-| Test coverage >90% | 🔄 In progress | Current: 65% |
-| Performance benchmarks | 🔄 In progress | Core ops benchmarked |
-| Critical path tests | 🔄 In progress | Basic tests exist, need expansion |
+|<10k LOC core | ✅ On track | Header-only core remains compact |
+| No external deps | ✅ Maintained | STL + intrinsics only |
+| Cross-platform | ✅ Achieved | Windows/MSVC, Linux/GCC/Clang, macOS/ARM64 |
+| Real-time capable | 🔄 In progress | Perf benches integrated; tuning ongoing |
+| Test coverage ≥ 90% | 🔄 In progress | Trending upward; add more unit/prop tests |
+| Performance benchmarks | ✅ In place | NDJSON harness; perf regression CI |
+| Critical path tests | ✅ In place | Backend parity, determinism, snapshots |
 
 ## Test Implementation Plan
 
@@ -757,3 +762,25 @@ void bind(const HyperVector<Dim, bool>& a,
 
 [Unreleased]: https://github.com/your-org/hyperstream/compare/v0.0.0...HEAD
 [Specify License]: #11-license
+
+## Progress Update (2025-10-13)
+
+- Batch 3 cleanup complete: clang-tidy findings addressed per-file; C++17 nested namespaces; module headers added; serialization/memory APIs clarified.
+- CI stable across OS matrix with perf/golden gates; NEON integrated.
+- Benchmarks and determinism scaffolding complete; snapshot/restore parity landed.
+
+## Next Steps
+
+1. .clang-tidy configuration
+   - Convert `Checks` to YAML list form; consider enabling `cppcoreguidelines-*`, `cert-*`; keep stylistic exceptions as needed.
+2. Performance tuning
+   - Revisit AVX2 bind thresholds; document size-based heuristics; A/B small-dim `loadu`-only vs aligned loads.
+   - Add Hamming SSE2/AVX2 auto-tune guidance; expose/env override already present.
+3. Associative memory ergonomics
+   - Decide inline vs heap for large `Dim*Capacity` (ADR + tests); ensure no stack-pressure construction sites.
+4. API documentation
+   - Ensure ADR-0001 is referenced in README/Docs where applicable; add examples for new args structs (`HashEncoderConfig`, `TokenRole`, `*Args`).
+4. Coverage expansion
+   - Unit tests for IO failure paths; more property tests (bundling invariants); fuzz HSER1 corruption.
+5. Documentation
+   - Expand standardized headers to any remaining files; add ADR for policy threshold decision; run doc linters.

@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_capi/tests/dispatch_tests[1]_tests.cmake")
+  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_capi/tests/dispatch_tests[1]_tests.cmake")
+else()
+  add_test(dispatch_tests_NOT_BUILT dispatch_tests_NOT_BUILT)
+endif()

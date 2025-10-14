@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
-#include <cstdint>
-#include <string_view>
 #include <array>
+#include <cstdint>
+#include <gtest/gtest.h>
+#include <string_view>
 
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
@@ -9,8 +9,8 @@
 
 namespace {
 
-using hyperstream::core::HyperVector;
 using hyperstream::core::HammingDistance;
+using hyperstream::core::HyperVector;
 using hyperstream::encoding::ItemMemory;
 
 TEST(ItemMemory, DeterministicAcrossInstancesAndCalls) {
@@ -90,7 +90,8 @@ TEST(ItemMemory, TrailingBitsMasked) {
     case 0:
       break;
     default: {
-      const std::uint64_t valid_mask = (valid_in_last == 64) ? ~0ULL : ((1ULL << valid_in_last) - 1ULL);
+      const std::uint64_t valid_mask =
+          (valid_in_last == 64) ? ~0ULL : ((1ULL << valid_in_last) - 1ULL);
       const std::uint64_t invalid_mask = ~valid_mask;
       EXPECT_EQ((words.back() & invalid_mask), 0ULL) << std::hex << words.back();
     } break;
@@ -98,4 +99,3 @@ TEST(ItemMemory, TrailingBitsMasked) {
 }
 
 }  // namespace
-

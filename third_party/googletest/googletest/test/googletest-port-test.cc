@@ -876,14 +876,15 @@ TEST(RETest, ImplicitConstructorWorks) {
 
 // Tests that RE's constructors reject invalid regular expressions.
 TEST(RETest, RejectsInvalidRegex) {
-  EXPECT_NONFATAL_FAILURE({ const RE normal(NULL); },
-                          "NULL is not a valid simple regular expression");
+  EXPECT_NONFATAL_FAILURE(
+      { const RE normal(NULL); },
+      "NULL is not a valid simple regular expression");
 
-  EXPECT_NONFATAL_FAILURE({ const RE normal(".*(\\w+"); },
-                          "'(' is unsupported");
+  EXPECT_NONFATAL_FAILURE(
+      { const RE normal(".*(\\w+"); }, "'(' is unsupported");
 
-  EXPECT_NONFATAL_FAILURE({ const RE invalid("^?"); },
-                          "'?' can only follow a repeatable token");
+  EXPECT_NONFATAL_FAILURE(
+      { const RE invalid("^?"); }, "'?' can only follow a repeatable token");
 }
 
 // Tests RE::FullMatch().
@@ -1028,7 +1029,9 @@ TEST(MutexDeathTest, AssertHeldShouldAssertWhenNotLocked) {
   EXPECT_DEATH_IF_SUPPORTED(
       {
         Mutex m;
-        { MutexLock lock(&m); }
+        {
+          MutexLock lock(&m);
+        }
         m.AssertHeld();
       },
       "thread .*hold");

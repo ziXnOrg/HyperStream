@@ -945,3 +945,63 @@ Notes:
 - Evidence
   - PR #40: https://github.com/ziXnOrg/HyperStream/pull/40
   - Issue #39 (closed): Phase F tracking and acceptance criteria
+
+
+### 2025-10-13 — Batch 3: clang-tidy sweep, namespaces, and docs normalization — COMPLETE
+
+- Scope
+  - Finish Batch 3 naming/readability across headers; per-file clang-tidy loop; C++17 nested namespace concatenation; standardized module headers; API hardening in serialization and memory APIs where safe.
+
+- Changes
+  - Static analysis/cleanup
+    - Per-file clang-tidy runners stabilized (MSVC includes + /std:c++17 passed via driver mode).
+    - Resolved identifier-length, magic-numbers, braces-around-statements, avoid-c-arrays, uppercase-literal-suffix, dead stores, and modernize suggestions across backend/* and encoding/*.
+    - Exceptions-off guard in `core/hypervector.hpp` for OOB path (`std::terminate()` without exceptions).
+  - Namespaces & headers
+    - Adopted C++17 nested namespaces in: `core/*`, `memory/associative.hpp`, `encoding/symbol.hpp`, `io/serialization.hpp`, `backend/cpu_backend*.hpp`, `backend/policy.hpp`.
+    - Added standardized top-of-file module headers (Overview, Mathematical/Security/Performance, Examples) to core/backends/memory/IO.
+  - API adjustments
+    - `io/serialization.hpp`: renamed stream and buffer parameters to descriptive names; introduced `HeaderInputs` to remove swappable-parameter warnings; normalized constants/arrays and CRC32; clarified trailer logic.
+    - `memory/associative.hpp`: introduced CamelCase accessors (`Size()`, `Data()`, `View()`); kept lowercase shims `[[deprecated]]`; renamed ambiguous params; marked `FindIndex` `[[nodiscard]] noexcept`.
+    - `backend/cpu_backend.hpp`: capability detection uses `std::array` + `.data()`; tightened noexcept; consistent naming.
+    - `encoding/*`: descriptive identifiers/constants; noexcept on hot paths; `item_memory` FNV/SplitMix constants consolidated.
+  - Documentation
+    - Normalized file headers and Doxygen brief comments where relevant; ensured invariants blocks present in SIMD backends.
+
+- Validation
+  - Per-file clang-tidy re-runs show only acceptable notes (portability notices for AVX2 intrinsics; optional nested-namespace notes now cleared).
+  - Build/test unchanged; CI runners unaffected by header-only changes.
+
+- Risks/Notes
+  - `memory/associative.hpp`: switched to `std::array` for some internal buffers to improve locality/readability. For very large `Dim*Capacity`, inline storage can increase object size and risk stack pressure if instantiated on the stack. Follow-up: confirm construction sites (prefer heap/arena) or re-introduce heap-backed storage for large configurations.
+
+- Next
+  - Finalize .clang-tidy YAML list formatting; broaden checks incrementally (cppcoreguidelines, cert) and re-run repo-wide.
+  - Decide on heap vs inline storage for associative memory large configurations (ADR or doc note + tests).
+  - Expand doc headers to remaining files (encoding/* already consistent) and run doc linters.
+
+### 2025-10-13 — Batch 3 API updates recorded (ADR-0001)
+
+- Encoding: `HashEncoder` now uses `HashEncoderConfig` and `TokenRole` structs (clarity, removes swappable-parameter warnings). Defaults preserved.
+- Core ops: `NormalizedHammingSimilarity` and `CosineSimilarity` accept args structs for explicit lhs/rhs at call sites.
+- Memory: `ClusterMemory::LoadRaw` takes `LoadRawArgs` and `CleanupMemory::Restore` takes `RestoreArgs` (pointer members where needed to satisfy guideline checks).
+- Rationale and impacts captured in `Docs/ADR/adr_0001_api_changes.md`. Tests and serialization call sites updated. Re-ran tidy clean.
+
+### 2025-10-14 — Phase 2: AVX2 tidy policy (Windows clang-cl) — COMPLETE
+
+- Context
+  - clang-tidy under Windows (clang-cl) flagged `portability-simd-intrinsics` for AVX2 intrinsics in headers, despite platform guards and intentional use.
+- Decision (ADR-0003)
+  - Headers now avoid exposing AVX2 intrinsics to MSVC/clang-cl; provide span overloads forwarding to TU symbols.
+  - GCC/Clang (non-MSVC) retain inline AVX2 implementations with function-level `target("avx2")` attributes.
+  - MSVC TUs (`src/backend/hamming_avx2.cpp`) define a TU-local `Popcount256` and implement the AVX2 loop with `/arch:AVX2`.
+- Results
+  - clang-tidy (Windows, clang-cl): no `portability-simd-intrinsics` diagnostics in headers.
+  - Build: PASS; Tests: PASS (87/87). Determinism and parity tests remain green.
+- Files
+  - Docs/ADR/adr_0003_avx2_tidy_policy_windows_clangcl.md (Accepted)
+  - include/hyperstream/backend/cpu_backend_avx2.hpp (header guards adjusted)
+  - src/backend/hamming_avx2.cpp (TU-local Popcount256 added)
+- Next
+  - Consider backend-local `.clang-tidy` disabling `portability-simd-intrinsics` only for backend dirs if we enable Linux/macOS clang-tidy runs.
+  - Proceed to Phase 2 NEON backend stylistic parity (std::span, identifier-length, modernize-use-auto) with macOS arm64 validation.

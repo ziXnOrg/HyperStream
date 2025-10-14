@@ -1,4 +1,3 @@
-# Build trees and generated files
 /build/
 /build-*/
 /cmake-build-*/
@@ -56,10 +55,32 @@ Thumbs.db
 
 # Local tools
 .windsurf/
+.cursor/
 
 # Keep documentation private
 Docs/
 docs/
+
+# Build trees and generated files
+.build
+.build_capi
+.build_ci
+.build_ninja
+.build_ninja_clangcl
+.build_ninja_msvc
+.build_ninja_msvc2
+.build_scalar
+.build_tidy
+.build_vs2022_x64
+.build-clangtidy
+.build-itemmem
+.build-msvc
+.build-msvc2
+.build-scalar
+.build-tidy
+.build-vs2022_x64
+.tlog
+
 
 # Benchmark/test runtime outputs (if any outside build/)
 benchmarks/**/Release/*

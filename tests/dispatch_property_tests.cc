@@ -1,9 +1,9 @@
+#include <array>
 #include <gtest/gtest.h>
 #include <random>
-#include <array>
 
-#include "hyperstream/backend/policy.hpp"
 #include "hyperstream/backend/capability.hpp"
+#include "hyperstream/backend/policy.hpp"
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 
@@ -20,17 +20,24 @@
 #define HS_ARM64_ARCH 0
 #endif
 
-
 using hyperstream::core::HyperVector;
 
 namespace {
 
 using namespace hyperstream::backend;
 
-static std::uint32_t MaskNone() { return 0u; }
-static std::uint32_t MaskSSE2() { return static_cast<std::uint32_t>(CpuFeature::SSE2); }
-static std::uint32_t MaskAVX2() { return static_cast<std::uint32_t>(CpuFeature::AVX2); }
-static std::uint32_t MaskBoth() { return MaskSSE2() | MaskAVX2(); }
+static std::uint32_t MaskNone() {
+  return 0u;
+}
+static std::uint32_t MaskSSE2() {
+  return static_cast<std::uint32_t>(CpuFeature::SSE2);
+}
+static std::uint32_t MaskAVX2() {
+  return static_cast<std::uint32_t>(CpuFeature::AVX2);
+}
+static std::uint32_t MaskBoth() {
+  return MaskSSE2() | MaskAVX2();
+}
 
 // Deterministic bit fill for a and b
 template <std::size_t D>
@@ -42,16 +49,15 @@ static void FillRandom(HyperVector<D, bool>& hv, std::mt19937& rng) {
 // Execute invariants and small executions for a single dimension D
 template <std::size_t D>
 static void CheckOneDim() {
-
   const std::array<std::uint32_t, 4> masks = {MaskNone(), MaskSSE2(), MaskAVX2(), MaskBoth()};
 
   for (std::uint32_t m : masks) {
     auto bind_fn = SelectBindBackend<D>(m);
-    auto ham_fn  = SelectHammingBackend<D>(m);
+    auto ham_fn = SelectHammingBackend<D>(m);
 
     // Non-null function pointers
     ASSERT_NE(bind_fn, nullptr);
-    ASSERT_NE(ham_fn,  nullptr);
+    ASSERT_NE(ham_fn, nullptr);
 
 #if HS_X86_ARCH
     const bool has_sse2 = HasFeature(m, CpuFeature::SSE2);
@@ -60,17 +66,17 @@ static void CheckOneDim() {
     // Masking invariants
     if (!has_avx2) {
       EXPECT_NE(bind_fn, &avx2::BindAVX2<D>);
-      EXPECT_NE(ham_fn,  &avx2::HammingDistanceAVX2<D>);
+      EXPECT_NE(ham_fn, &avx2::HammingDistanceAVX2<D>);
     }
     if (!has_sse2) {
       EXPECT_NE(bind_fn, &sse2::BindSSE2<D>);
-      EXPECT_NE(ham_fn,  &sse2::HammingDistanceSSE2<D>);
+      EXPECT_NE(ham_fn, &sse2::HammingDistanceSSE2<D>);
     }
 
     // Scalar fallback when no features
     if (!has_sse2 && !has_avx2) {
       EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
-      EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
+      EXPECT_EQ(ham_fn, &hyperstream::core::HammingDistance<D>);
     }
 
     // Threshold heuristic for Hamming when both SSE2+AVX2 available
@@ -89,22 +95,26 @@ static void CheckOneDim() {
       EXPECT_NE(bind_fn, &hyperstream::core::Bind<D>);
     }
 #else
-  #if HS_ARM64_ARCH
+#if HS_ARM64_ARCH
     // On ARM64: NEON is baseline regardless of synthetic x86 mask
     EXPECT_EQ(bind_fn, &hyperstream::backend::neon::BindNEON<D>);
-    EXPECT_EQ(ham_fn,  &hyperstream::backend::neon::HammingDistanceNEON<D>);
-  #else
+    EXPECT_EQ(ham_fn, &hyperstream::backend::neon::HammingDistanceNEON<D>);
+#else
     // Other non-x86 arches: scalar
     EXPECT_EQ(bind_fn, &hyperstream::core::Bind<D>);
-    EXPECT_EQ(ham_fn,  &hyperstream::core::HammingDistance<D>);
-  #endif
+    EXPECT_EQ(ham_fn, &hyperstream::core::HammingDistance<D>);
+#endif
 #endif
 
     // Execute selected backends to ensure no illegal instruction and correct results
     std::mt19937 rng(42);
     HyperVector<D, bool> a, b, out, out_ref;
-    a.Clear(); b.Clear(); out.Clear(); out_ref.Clear();
-    FillRandom(a, rng); FillRandom(b, rng);
+    a.Clear();
+    b.Clear();
+    out.Clear();
+    out_ref.Clear();
+    FillRandom(a, rng);
+    FillRandom(b, rng);
 
     // Bind correctness
     bind_fn(a, b, &out);
@@ -142,4 +152,3 @@ TEST(DispatchProperty, DISABLED_BindThreshold_TBD) {
   // Hamming, add cases here to validate AVX2↔SSE2 selection at boundary dimensions.
   SUCCEED();
 }
-

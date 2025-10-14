@@ -265,8 +265,8 @@ class FloatingPoint {
   static const Bits kSignBitMask = static_cast<Bits>(1) << (kBitCount - 1);
 
   // The mask for the fraction bits.
-  static const Bits kFractionBitMask = ~static_cast<Bits>(0) >>
-                                       (kExponentBitCount + 1);
+  static const Bits kFractionBitMask =
+      ~static_cast<Bits>(0) >> (kExponentBitCount + 1);
 
   // The mask for the exponent bits.
   static const Bits kExponentBitMask = ~(kSignBitMask | kFractionBitMask);
@@ -1376,8 +1376,7 @@ class NeverThrown {
 
 #else  // GTEST_HAS_RTTI
 
-#define GTEST_EXCEPTION_TYPE_(e) \
-  std::string { "an std::exception-derived error" }
+#define GTEST_EXCEPTION_TYPE_(e) std::string{"an std::exception-derived error"}
 
 #endif  // GTEST_HAS_RTTI
 

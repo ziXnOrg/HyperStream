@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests/streaming_determinism_tests[1]_tests.cmake")
+  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_vs2022_x64/tests/streaming_determinism_tests[1]_tests.cmake")
+else()
+  add_test(streaming_determinism_tests_NOT_BUILT streaming_determinism_tests_NOT_BUILT)
+endif()

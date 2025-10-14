@@ -734,34 +734,34 @@ TEST(InvokeArgumentTest, Functor6) {
 
 // Tests using InvokeArgument with a 7-ary function.
 TEST(InvokeArgumentTest, Function7) {
-  Action<std::string(std::string(*)(const char*, const char*, const char*,
-                                    const char*, const char*, const char*,
-                                    const char*))>
+  Action<std::string(std::string (*)(const char*, const char*, const char*,
+                                     const char*, const char*, const char*,
+                                     const char*))>
       a = InvokeArgument<0>("1", "2", "3", "4", "5", "6", "7");
   EXPECT_EQ("1234567", a.Perform(std::make_tuple(&Concat7)));
 }
 
 // Tests using InvokeArgument with a 8-ary function.
 TEST(InvokeArgumentTest, Function8) {
-  Action<std::string(std::string(*)(const char*, const char*, const char*,
-                                    const char*, const char*, const char*,
-                                    const char*, const char*))>
+  Action<std::string(std::string (*)(const char*, const char*, const char*,
+                                     const char*, const char*, const char*,
+                                     const char*, const char*))>
       a = InvokeArgument<0>("1", "2", "3", "4", "5", "6", "7", "8");
   EXPECT_EQ("12345678", a.Perform(std::make_tuple(&Concat8)));
 }
 
 // Tests using InvokeArgument with a 9-ary function.
 TEST(InvokeArgumentTest, Function9) {
-  Action<std::string(std::string(*)(const char*, const char*, const char*,
-                                    const char*, const char*, const char*,
-                                    const char*, const char*, const char*))>
+  Action<std::string(std::string (*)(const char*, const char*, const char*,
+                                     const char*, const char*, const char*,
+                                     const char*, const char*, const char*))>
       a = InvokeArgument<0>("1", "2", "3", "4", "5", "6", "7", "8", "9");
   EXPECT_EQ("123456789", a.Perform(std::make_tuple(&Concat9)));
 }
 
 // Tests using InvokeArgument with a 10-ary function.
 TEST(InvokeArgumentTest, Function10) {
-  Action<std::string(std::string(*)(
+  Action<std::string(std::string (*)(
       const char*, const char*, const char*, const char*, const char*,
       const char*, const char*, const char*, const char*, const char*))>
       a = InvokeArgument<0>("1", "2", "3", "4", "5", "6", "7", "8", "9", "0");

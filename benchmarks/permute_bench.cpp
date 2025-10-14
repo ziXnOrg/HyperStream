@@ -31,7 +31,8 @@ static std::pair<std::size_t, double> run_for_ms(Fn&& fn, int min_ms) {
   do {
     fn(&sink);
     ++iters;
-  } while (std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count() < min_ms);
+  } while (std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count() <
+           min_ms);
   const double secs = std::chrono::duration<double>(clock::now() - t0).count();
   if ((iters & 0xff) == 0) std::fprintf(stderr, "#sink=%llu\n", (unsigned long long)sink);
   return {iters, secs};
@@ -46,8 +47,7 @@ static void init_vectors(HyperVector<Dim, bool>* in) {
 // Bench-local word-level left rotate by k bits across bit-packed storage.
 // No bounds checks; intended for benchmarking only.
 template <std::size_t Dim>
-static inline void PermuteRotateWord_Ref(const HyperVector<Dim, bool>& in,
-                                         std::size_t k,
+static inline void PermuteRotateWord_Ref(const HyperVector<Dim, bool>& in, std::size_t k,
                                          HyperVector<Dim, bool>* out) {
   const auto& iw = in.Words();
   auto& ow = out->Words();
@@ -72,7 +72,7 @@ static inline void PermuteRotateWord_Ref(const HyperVector<Dim, bool>& in,
   // Mask off any excess bits beyond Dim in the final word
   constexpr std::size_t extra_bits = (HyperVector<Dim, bool>::WordCount() * 64ULL) - Dim;
   if constexpr (extra_bits > 0) {
-    const std::uint64_t mask = ~0ULL >> extra_bits; // keep low (64-extra_bits) bits
+    const std::uint64_t mask = ~0ULL >> extra_bits;  // keep low (64-extra_bits) bits
     ow[N - 1] &= mask;
   }
 }
@@ -86,29 +86,37 @@ static void bench_one_dim() {
   // Core bitwise rotate
   {
     const std::size_t kBytesPerIter = bytes_per_iteration<Dim>();
-    auto [iters, secs] = run_for_ms([&](volatile std::uint64_t* sink) {
-      PermuteRotate(in, kRotate, &out);
-      *sink ^= in.Words()[0];
-    }, 300);
+    auto [iters, secs] = run_for_ms(
+        [&](volatile std::uint64_t* sink) {
+          PermuteRotate(in, kRotate, &out);
+          *sink ^= in.Words()[0];
+        },
+        300);
     const double gbps = (static_cast<double>(kBytesPerIter) * iters / secs) / 1e9;
-    std::printf("Permute/core_bitrotate,dim_bits=%zu,bytes_per_iter=%zu,iters=%zu,secs=%.6f,gb_per_sec=%.3f\n",
-      Dim, kBytesPerIter, iters, secs, gbps);
+    std::printf(
+        "Permute/"
+        "core_bitrotate,dim_bits=%zu,bytes_per_iter=%zu,iters=%zu,secs=%.6f,gb_per_sec=%.3f\n",
+        Dim, kBytesPerIter, iters, secs, gbps);
   }
 
   // Word-level rotate reference
   {
     const std::size_t kBytesPerIter = bytes_per_iteration<Dim>();
-    auto [iters, secs] = run_for_ms([&](volatile std::uint64_t* sink) {
-      PermuteRotateWord_Ref(in, kRotate, &out);
-      *sink ^= in.Words()[0];
-    }, 300);
+    auto [iters, secs] = run_for_ms(
+        [&](volatile std::uint64_t* sink) {
+          PermuteRotateWord_Ref(in, kRotate, &out);
+          *sink ^= in.Words()[0];
+        },
+        300);
     const double gbps = (static_cast<double>(kBytesPerIter) * iters / secs) / 1e9;
-    std::printf("Permute/word_rotate_ref,dim_bits=%zu,bytes_per_iter=%zu,iters=%zu,secs=%.6f,gb_per_sec=%.3f\n",
-      Dim, kBytesPerIter, iters, secs, gbps);
+    std::printf(
+        "Permute/"
+        "word_rotate_ref,dim_bits=%zu,bytes_per_iter=%zu,iters=%zu,secs=%.6f,gb_per_sec=%.3f\n",
+        Dim, kBytesPerIter, iters, secs, gbps);
   }
 }
 
-} // namespace
+}  // namespace
 
 int main() {
   bench_one_dim<1024>();

@@ -2051,11 +2051,11 @@ class WhenDynamicCastToMatcher<To&> : public WhenDynamicCastToMatcherBase<To&> {
 template <typename Class, typename FieldType>
 class FieldMatcher {
  public:
-  FieldMatcher(FieldType Class::*field,
+  FieldMatcher(FieldType Class::* field,
                const Matcher<const FieldType&>& matcher)
       : field_(field), matcher_(matcher), whose_field_("whose given field ") {}
 
-  FieldMatcher(const std::string& field_name, FieldType Class::*field,
+  FieldMatcher(const std::string& field_name, FieldType Class::* field,
                const Matcher<const FieldType&>& matcher)
       : field_(field),
         matcher_(matcher),
@@ -2099,7 +2099,7 @@ class FieldMatcher {
     return MatchAndExplainImpl(std::false_type(), *p, listener);
   }
 
-  const FieldType Class::*field_;
+  const FieldType Class::* field_;
   const Matcher<const FieldType&> matcher_;
 
   // Contains either "whose given field " if the name of the field is unknown
@@ -4364,7 +4364,7 @@ WhenDynamicCastTo(const Matcher<To>& inner_matcher) {
 // matches a Foo object x if and only if x.number >= 5.
 template <typename Class, typename FieldType, typename FieldMatcher>
 inline PolymorphicMatcher<internal::FieldMatcher<Class, FieldType>> Field(
-    FieldType Class::*field, const FieldMatcher& matcher) {
+    FieldType Class::* field, const FieldMatcher& matcher) {
   return MakePolymorphicMatcher(internal::FieldMatcher<Class, FieldType>(
       field, MatcherCast<const FieldType&>(matcher)));
   // The call to MatcherCast() is required for supporting inner
@@ -4377,7 +4377,7 @@ inline PolymorphicMatcher<internal::FieldMatcher<Class, FieldType>> Field(
 // messages.
 template <typename Class, typename FieldType, typename FieldMatcher>
 inline PolymorphicMatcher<internal::FieldMatcher<Class, FieldType>> Field(
-    const std::string& field_name, FieldType Class::*field,
+    const std::string& field_name, FieldType Class::* field,
     const FieldMatcher& matcher) {
   return MakePolymorphicMatcher(internal::FieldMatcher<Class, FieldType>(
       field_name, field, MatcherCast<const FieldType&>(matcher)));

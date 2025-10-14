@@ -44,18 +44,23 @@ inline std::size_t Popcount64(std::uint64_t value) noexcept {
 inline void BindWords(std::span<const std::uint64_t> lhs_words,
                       std::span<const std::uint64_t> rhs_words,
                       std::span<std::uint64_t> out) noexcept {
+  // Safety: AArch64 vld1q_u64 supports unaligned loads. We still bound the vector loop
+  // to the minimum of the provided spans to avoid any OOB when callers pass mismatched sizes.
   static constexpr std::size_t kWordsPer128Bit = 2U;  // 2x u64 per 128-bit lane
-  const auto word_count = lhs_words.size();
-  const auto vector_loop_words = (word_count / kWordsPer128Bit) * kWordsPer128Bit;
-  std::size_t word_index = 0;
-  for (; word_index < vector_loop_words; word_index += kWordsPer128Bit) {
-    const uint64x2_t vec_lhs = vld1q_u64(lhs_words.data() + word_index);
-    const uint64x2_t vec_rhs = vld1q_u64(rhs_words.data() + word_index);
+  const std::size_t n12 = (lhs_words.size() < rhs_words.size()) ? lhs_words.size() : rhs_words.size();
+  const std::size_t n = (n12 < out.size()) ? n12 : out.size();
+  const std::size_t vector_loop_words = (n / kWordsPer128Bit) * kWordsPer128Bit;
+
+  std::size_t i = 0;
+  for (; i < vector_loop_words; i += kWordsPer128Bit) {
+    const uint64x2_t vec_lhs = vld1q_u64(lhs_words.data() + i);
+    const uint64x2_t vec_rhs = vld1q_u64(rhs_words.data() + i);
     const uint64x2_t vec_xor = veorq_u64(vec_lhs, vec_rhs);
-    vst1q_u64(out.data() + word_index, vec_xor);
+    vst1q_u64(out.data() + i, vec_xor);
   }
-  for (; word_index < word_count; ++word_index) {
-    out[word_index] = lhs_words[word_index] ^ rhs_words[word_index];
+  // Scalar tail handles any remainder words (including n not multiple of 2).
+  for (; i < n; ++i) {
+    out[i] = lhs_words[i] ^ rhs_words[i];
   }
 }
 
@@ -70,22 +75,25 @@ inline void BindWords(const std::uint64_t* lhs_words, const std::uint64_t* rhs_w
 /// Compute Hamming distance between two word arrays using NEON (span-based primary API).
 inline std::size_t HammingWords(std::span<const std::uint64_t> lhs_words,
                                 std::span<const std::uint64_t> rhs_words) noexcept {
+  // Safety: bound the loop by the minimum span size to avoid OOB on mismatched inputs.
+  // Tail path uses scalar popcount for any remaining word.
   static constexpr std::size_t kWordsPer128Bit = 2U;
-  const auto word_count = lhs_words.size();
-  const auto vector_loop_words = (word_count / kWordsPer128Bit) * kWordsPer128Bit;
+  const std::size_t n = (lhs_words.size() < rhs_words.size()) ? lhs_words.size() : rhs_words.size();
+  const std::size_t vector_loop_words = (n / kWordsPer128Bit) * kWordsPer128Bit;
+
   std::size_t total = 0;
-  std::size_t word_index = 0;
-  for (; word_index < vector_loop_words; word_index += kWordsPer128Bit) {
-    const uint64x2_t vec_lhs = vld1q_u64(lhs_words.data() + word_index);
-    const uint64x2_t vec_rhs = vld1q_u64(rhs_words.data() + word_index);
+  std::size_t i = 0;
+  for (; i < vector_loop_words; i += kWordsPer128Bit) {
+    const uint64x2_t vec_lhs = vld1q_u64(lhs_words.data() + i);
+    const uint64x2_t vec_rhs = vld1q_u64(rhs_words.data() + i);
     const uint64x2_t vec_xor = veorq_u64(vec_lhs, vec_rhs);
     const uint8x16_t xor_bytes = vreinterpretq_u8_u64(vec_xor);
     const uint8x16_t popcnt_bytes = vcntq_u8(xor_bytes);
     const auto sum_u32 = static_cast<std::uint32_t>(vaddvq_u8(popcnt_bytes));
     total += static_cast<std::size_t>(sum_u32);
   }
-  for (; word_index < word_count; ++word_index) {
-    total += Popcount64(lhs_words[word_index] ^ rhs_words[word_index]);
+  for (; i < n; ++i) {
+    total += Popcount64(lhs_words[i] ^ rhs_words[i]);
   }
   return total;
 }

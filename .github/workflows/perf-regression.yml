@@ -94,21 +94,48 @@ jobs:
           grep -E 'CMAKE_CXX_COMPILER:|CMAKE_CXX_COMPILER_VERSION:|CMAKE_CXX_FLAGS:|CMAKE_BUILD_TYPE:' build/CMakeCache.txt || true
         shell: bash
 
-      # Windows-specific execution: use PowerShell call operator '&' for .exe invocation and preserve
-      # stdout redirection semantics for NDJSON. This avoids relying on bash shims on Windows runners.
+      # Windows-specific execution: use PowerShell call operator '&' for .exe invocation.
+      # Diagnostic instrumentation:
+      # - Run am_bench.exe and cluster_bench.exe separately
+      # - Capture and echo $LASTEXITCODE after each
+      # - Redirect stderr to per-benchmark files and print them if exit!=0
+      # - Preserve NDJSON stdout redirection to am.ndjson/cluster.ndjson
       - name: Run benches (NDJSON - Windows)
         if: runner.os == 'Windows'
         id: run_benches_windows
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
+          # Do not stop on first error so we can capture both exit codes
+          $ErrorActionPreference = 'Continue'
           $AM = "build/benchmarks/Release/am_bench.exe"
           $CL = "build/benchmarks/Release/cluster_bench.exe"
           Write-Host "Using $AM and $CL"
-          & $AM --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES | Out-File -FilePath am.ndjson -Encoding utf8
-          & $CL --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES | Out-File -FilePath cluster.ndjson -Encoding utf8
-          Write-Host ("am.ndjson lines: {0}" -f ((Get-Content am.ndjson).Count))
-          Write-Host ("cluster.ndjson lines: {0}" -f ((Get-Content cluster.ndjson).Count))
+
+          # --- AM bench ---
+          Write-Host "Running AM bench..."
+          & $AM --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES 1> am.ndjson 2> am.err.txt
+          $AM_EXIT = $LASTEXITCODE
+          Write-Host "AM bench exit code: $AM_EXIT"
+          Write-Host ("am.ndjson lines: {0}" -f ((Test-Path am.ndjson) ? (Get-Content am.ndjson).Count : 0))
+          if ($AM_EXIT -ne 0) {
+            Write-Host "----- AM stderr -----"
+            if (Test-Path am.err.txt) { Get-Content am.err.txt | Write-Host } else { Write-Host "(no stderr captured)" }
+          }
+
+          # --- Cluster bench ---
+          Write-Host "Running Cluster bench..."
+          & $CL --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES 1> cluster.ndjson 2> cluster.err.txt
+          $CL_EXIT = $LASTEXITCODE
+          Write-Host "Cluster bench exit code: $CL_EXIT"
+          Write-Host ("cluster.ndjson lines: {0}" -f ((Test-Path cluster.ndjson) ? (Get-Content cluster.ndjson).Count : 0))
+          if ($CL_EXIT -ne 0) {
+            Write-Host "----- Cluster stderr -----"
+            if (Test-Path cluster.err.txt) { Get-Content cluster.err.txt | Write-Host } else { Write-Host "(no stderr captured)" }
+          }
+
+          # Fail the step if any benchmark failed
+          if ($AM_EXIT -ne 0 -or $CL_EXIT -ne 0) { exit 1 } else { exit 0 }
+
 
       - name: Run benches (NDJSON - Unix)
         if: runner.os != 'Windows'

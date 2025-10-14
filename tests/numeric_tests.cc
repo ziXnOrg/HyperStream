@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include <cstdint>
+#include <gtest/gtest.h>
 #include <vector>
 
 #include "hyperstream/core/hypervector.hpp"
@@ -9,12 +9,13 @@
 namespace {
 
 using hyperstream::core::HyperVector;
-using hyperstream::encoding::ThermometerEncoder;
 using hyperstream::encoding::RandomProjectionEncoder;
+using hyperstream::encoding::ThermometerEncoder;
 
 static int CountOnes128(const HyperVector<128, bool>& hv) {
   int c = 0;
-  for (std::size_t i = 0; i < 128; ++i) if (hv.GetBit(i)) ++c;
+  for (std::size_t i = 0; i < 128; ++i)
+    if (hv.GetBit(i)) ++c;
   return c;
 }
 
@@ -26,8 +27,8 @@ TEST(ThermometerEncoder, MonotonicAndBounds) {
   enc.Encode(0.0, &lo);
   enc.Encode(5.0, &mid);
   enc.Encode(10.0, &hi);
-  enc.Encode(-5.0, &below);   // clamps to 0
-  enc.Encode(15.0, &above);   // clamps to Dim
+  enc.Encode(-5.0, &below);  // clamps to 0
+  enc.Encode(15.0, &above);  // clamps to Dim
 
   const int c_lo = CountOnes128(lo);
   const int c_mid = CountOnes128(mid);
@@ -59,7 +60,8 @@ TEST(RandomProjectionEncoder, DeterministicAndEmptyYieldsZeros) {
 
   enc.Encode(nullptr, 0, &empty);
   int ones = 0;
-  for (std::size_t i = 0; i < D; ++i) if (empty.GetBit(i)) ++ones;
+  for (std::size_t i = 0; i < D; ++i)
+    if (empty.GetBit(i)) ++ones;
   EXPECT_EQ(ones, 0);
 }
 
@@ -83,4 +85,3 @@ TEST(RandomProjectionEncoder, SignInversionFlipsManyBits) {
 }
 
 }  // namespace
-

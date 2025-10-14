@@ -166,7 +166,7 @@ class GTEST_API_ String {
 
  private:
   String();  // Not meant to be instantiated.
-};           // class String
+};  // class String
 
 // Gets the content of the stringstream's buffer as an std::string.  Each '\0'
 // character in the buffer is replaced with "\\0".

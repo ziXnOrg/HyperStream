@@ -1,0 +1,10 @@
+^C:\USERS\CISCO\DESKTOP\DEV\RESEARCH\HYPERSTREAM\BUILD_SCALAR\CMAKEFILES\D64D300034867D8AD74F10797FA7673D\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/cisco/Desktop/dev/research/HyperStream -BC:/Users/cisco/Desktop/dev/research/HyperStream/build_scalar --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/cisco/Desktop/dev/research/HyperStream/build_scalar/HyperStream.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

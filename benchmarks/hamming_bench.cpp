@@ -8,22 +8,22 @@
 #include <cstdio>
 #include <string>
 
+#include "hyperstream/backend/policy.hpp"
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
-#include "hyperstream/backend/policy.hpp"
 #if HS_X86_ARCH
-#include "hyperstream/backend/cpu_backend_sse2.hpp"
 #include "hyperstream/backend/cpu_backend_avx2.hpp"
+#include "hyperstream/backend/cpu_backend_sse2.hpp"
 #endif
 #if HS_ARM64_ARCH
 #include "hyperstream/backend/cpu_backend_neon.hpp"
 #endif
 
-using hyperstream::core::HyperVector;
 using hyperstream::core::HammingDistance;
+using hyperstream::core::HyperVector;
 #if HS_X86_ARCH
-using hyperstream::backend::sse2::HammingDistanceSSE2;
 using hyperstream::backend::avx2::HammingDistanceAVX2;
+using hyperstream::backend::sse2::HammingDistanceSSE2;
 #endif
 
 namespace {
@@ -44,7 +44,8 @@ static std::pair<std::size_t, double> run_for_ms(Fn&& fn, int min_ms) {
   do {
     fn(&sink);
     ++iters;
-  } while (std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count() < min_ms);
+  } while (std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count() <
+           min_ms);
   const double secs = std::chrono::duration<double>(clock::now() - t0).count();
   if ((iters & 0xff) == 0) std::fprintf(stderr, "#sink=%zu\n", (size_t)sink);
   return {iters, secs};
@@ -56,8 +57,8 @@ static void bench_impl(const char* name, DoDist&& do_dist) {
   auto [iters, secs] = run_for_ms(do_dist, 300);
   const double total_bytes = static_cast<double>(kBytesPerIter) * static_cast<double>(iters);
   const double gbps = (total_bytes / secs) / 1e9;
-  std::printf("%s,dim_bits=%zu,bytes_per_iter=%zu,iters=%zu,secs=%.6f,gb_per_sec=%.3f\n",
-              name, Dim, kBytesPerIter, iters, secs, gbps);
+  std::printf("%s,dim_bits=%zu,bytes_per_iter=%zu,iters=%zu,secs=%.6f,gb_per_sec=%.3f\n", name, Dim,
+              kBytesPerIter, iters, secs, gbps);
 }
 
 template <std::size_t Dim>
@@ -73,20 +74,17 @@ static void run_one() {
   HyperVector<D, bool> a, b;
   init_vectors(&a, &b);
 
-  bench_impl<D>("Hamming/core", [&](volatile std::size_t* sink) {
-    *sink ^= HammingDistance(a, b);
-  });
+  bench_impl<D>("Hamming/core",
+                [&](volatile std::size_t* sink) { *sink ^= HammingDistance(a, b); });
 
 #if HS_X86_ARCH
-  bench_impl<D>("Hamming/sse2", [&](volatile std::size_t* sink) {
-    *sink ^= HammingDistanceSSE2(a, b);
-  });
+  bench_impl<D>("Hamming/sse2",
+                [&](volatile std::size_t* sink) { *sink ^= HammingDistanceSSE2(a, b); });
 #endif
 
 #if defined(__AVX2__)
-  bench_impl<D>("Hamming/avx2", [&](volatile std::size_t* sink) {
-    *sink ^= HammingDistanceAVX2(a, b);
-  });
+  bench_impl<D>("Hamming/avx2",
+                [&](volatile std::size_t* sink) { *sink ^= HammingDistanceAVX2(a, b); });
 #endif
 
 #if HS_ARM64_ARCH
@@ -96,7 +94,7 @@ static void run_one() {
 #endif
 }
 
-} // namespace
+}  // namespace
 
 int main() {
   run_one<1024>();

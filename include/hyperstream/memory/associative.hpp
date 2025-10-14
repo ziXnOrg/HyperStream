@@ -1,17 +1,28 @@
 #pragma once
 
+// =============================================================================
+// File:        include/hyperstream/memory/associative.hpp
+// Overview:    Fixed-capacity prototype, cluster, and cleanup associative
+//              memories over binary HyperVectors.
+// Mathematical Foundation: Nearest-neighbour by Hamming; majority thresholding
+//              for clusters; direct match restore for cleanup memory.
+// Security Considerations: Fixed-capacity containers; no exceptions on hot
+//              paths; inputs validated for raw load; noexcept where safe.
+// Performance Considerations: Packed 64-bit words for HV; arrays for locality;
+//              saturating counters optional via compile-time flag.
+// Examples:    See io/serialization.hpp for persistence helpers.
+// =============================================================================
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
 #include <memory>
+#include <type_traits>
 
 #include "hyperstream/config.hpp"
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 
-namespace hyperstream {
-namespace memory {
+namespace hyperstream::memory {
 
 /**
  * @brief Fixed-capacity prototype associative memory (nearest neighbour by Hamming).
@@ -20,9 +31,11 @@ namespace memory {
  * @tparam Capacity Maximum number of (prototype,label) entries; no eviction policy.
  *
  * Invariants and behavior:
- * - Capacity is fixed at compile time; Learn() returns false when full (no eviction or replacement).
+ * - Capacity is fixed at compile time; Learn() returns false when full (no eviction or
+ * replacement).
  * - When size()==0, Classify() returns the provided default_label (no computation performed).
- * - If Capacity==0, all mutating operations fail and size() remains 0 (compile-time constant capacity).
+ * - If Capacity==0, all mutating operations fail and size() remains 0 (compile-time constant
+ * capacity).
  * - Thread-safety: not thread-safe. External synchronization is required for concurrent access.
  *
  * Complexity (binary HyperVector):
@@ -37,19 +50,19 @@ class PrototypeMemory {
     core::HyperVector<Dim, bool> hv;
   };
 
-  PrototypeMemory() : entries_(new Entry[Capacity]{}) {}
+  PrototypeMemory() = default;
 
-  bool Learn(std::uint64_t label, const core::HyperVector<Dim, bool>& hv) {
+  bool Learn(std::uint64_t label, const core::HyperVector<Dim, bool>& hypervector) {
     if (size_ >= Capacity) {
       return false;
     }
     entries_[size_].label = label;
-    entries_[size_].hv = hv;
+    entries_[size_].hv = hypervector;
     ++size_;
     return true;
   }
 
-  std::uint64_t Classify(const core::HyperVector<Dim, bool>& query,
+  [[nodiscard]] std::uint64_t Classify(const core::HyperVector<Dim, bool>& query,
                          std::uint64_t default_label = 0) const {
     if (size_ == 0) {
       return default_label;
@@ -69,13 +82,10 @@ class PrototypeMemory {
 
   // Overload: classify using a caller-provided distance functor.
   // DistFn must be callable as: size_t dist(const HV&, const HV&)
-  template <typename DistFn,
-            typename = std::enable_if_t<
-                std::is_invocable_r<std::size_t, DistFn,
-                                    const core::HyperVector<Dim, bool>&,
-                                    const core::HyperVector<Dim, bool>&>::value>>
-  std::uint64_t Classify(const core::HyperVector<Dim, bool>& query,
-                         DistFn&& dist_fn,
+  template <typename DistFn, typename = std::enable_if_t<std::is_invocable_r_v<
+                                 std::size_t, DistFn, const core::HyperVector<Dim, bool>&,
+                                 const core::HyperVector<Dim, bool>&>>>
+  [[nodiscard]] std::uint64_t Classify(const core::HyperVector<Dim, bool>& query, const DistFn& dist_fn,
                          std::uint64_t default_label = 0) const {
     if (size_ == 0) {
       return default_label;
@@ -93,18 +103,21 @@ class PrototypeMemory {
     return entries_[best_index].label;
   }
 
-  std::size_t size() const {
+  [[nodiscard]] std::size_t Size() const noexcept {
     return size_;
   }
   /**
    * @brief Read-only access to the underlying entries buffer.
    * Returns a pointer to an array of size Capacity; only the first size() entries are valid.
    */
-  [[nodiscard]] const Entry* data() const noexcept { return entries_.get(); }
+  [[nodiscard]] const Entry* Data() const noexcept {
+    return entries_.data();
+  }
+
 
 
  private:
-  std::unique_ptr<Entry[]> entries_;
+  std::array<Entry, Capacity> entries_{};
   std::size_t size_ = 0;
 };
 
@@ -127,9 +140,9 @@ class PrototypeMemory {
 template <std::size_t Dim, std::size_t Capacity>
 class ClusterMemory {
  public:
-  ClusterMemory() : sums_(new int[Capacity * Dim]{}) {}
+  ClusterMemory() = default;
 
-  bool Update(std::uint64_t label, const core::HyperVector<Dim, bool>& hv) {
+  bool Update(std::uint64_t label, const core::HyperVector<Dim, bool>& hypervector) {
     int index = FindIndex(label);
     if (index < 0) {
       if (size_ >= Capacity) {
@@ -143,7 +156,7 @@ class ClusterMemory {
     }
 
     for (std::size_t bit = 0; bit < Dim; ++bit) {
-      sums_[index * Dim + bit] += hv.GetBit(bit) ? 1 : -1;
+      sums_[index * Dim + bit] += hypervector.GetBit(bit) ? 1 : -1;
     }
     ++counts_[index];
     return true;
@@ -182,33 +195,48 @@ class ClusterMemory {
   };
 
   /** Returns a read-only view over labels, counts, and sums; first size() clusters valid. */
-  [[nodiscard]] View view() const noexcept { return View{labels_.data(), counts_.data(), sums_.get(), size_}; }
+  [[nodiscard]] View GetView() const noexcept {
+    return View{labels_.data(), counts_.data(), sums_.data(), size_};
+  }
+
+  // Backward-compatible alias removed to avoid type name collision in MSVC
 
   /**
    * @brief Load raw internal buffers. Intended for serialization; validates sizes.
    * Precondition: size()==0. Returns false on invalid input.
    */
-  bool LoadRaw(const std::uint64_t* labels, const int* counts, const int* sums, std::size_t n) noexcept {
-    if (size_ != 0 || labels == nullptr || counts == nullptr || sums == nullptr) return false;
-    if (n > Capacity) return false;
-    for (std::size_t i = 0; i < n; ++i) {
-      labels_[i] = labels[i];
-      counts_[i] = counts[i];
+  struct LoadRawArgs {
+    const std::uint64_t* labels;
+    const int* label_counts;
+    const int* bit_sums;
+    std::size_t num_items;
+  };
+
+  bool LoadRaw(const LoadRawArgs& args) noexcept {
+    if (size_ != 0 || args.labels == nullptr || args.label_counts == nullptr || args.bit_sums == nullptr) {
+      return false;
+    }
+    if (args.num_items > Capacity) return false;
+    for (std::size_t i = 0; i < args.num_items; ++i) {
+      labels_[i] = args.labels[i];
+      counts_[i] = args.label_counts[i];
       // copy Dim counters for cluster i
       for (std::size_t bit = 0; bit < Dim; ++bit) {
-        sums_[i * Dim + bit] = sums[i * Dim + bit];
+        sums_[i * Dim + bit] = args.bit_sums[i * Dim + bit];
       }
     }
-    size_ = n;
+    size_ = args.num_items;
     return true;
   }
 
-  std::size_t size() const {
+
+
+  [[nodiscard]] std::size_t Size() const noexcept {
     return size_;
   }
 
  private:
-  int FindIndex(std::uint64_t label) const {
+  [[nodiscard]] int FindIndex(std::uint64_t label) const noexcept {
     for (std::size_t i = 0; i < size_; ++i) {
       if (labels_[i] == label) {
         return static_cast<int>(i);
@@ -219,7 +247,7 @@ class ClusterMemory {
 
   std::array<std::uint64_t, Capacity> labels_{};
   std::array<int, Capacity> counts_{};
-  std::unique_ptr<int[]> sums_;
+  std::array<int, Capacity * Dim> sums_{};
   std::size_t size_ = 0;
 };
 
@@ -244,41 +272,48 @@ class CleanupMemory {
  public:
   CleanupMemory() = default;
 
-  bool Insert(const core::HyperVector<Dim, bool>& hv) {
+  bool Insert(const core::HyperVector<Dim, bool>& hypervector) {
     if (size_ >= Capacity) {
       return false;
     }
-    entries_[size_] = hv;
+    entries_[size_] = hypervector;
     ++size_;
     return true;
   }
 
-  core::HyperVector<Dim, bool> Restore(const core::HyperVector<Dim, bool>& noisy,
-                                       const core::HyperVector<Dim, bool>& fallback) const {
+  struct RestoreArgs {
+    const core::HyperVector<Dim, bool>& noisy;
+    const core::HyperVector<Dim, bool>& fallback;
+  };
+
+  core::HyperVector<Dim, bool> Restore(const RestoreArgs& args) const {
     if (size_ == 0) {
-      return fallback;
+      return args.fallback;
     }
     std::size_t best_index = 0;
     std::size_t best_match = 0;
     for (std::size_t i = 0; i < size_; ++i) {
-      const std::size_t dist = core::HammingDistance(noisy, entries_[i]);
+      const std::size_t dist = core::HammingDistance(args.noisy, entries_[i]);
       const std::size_t match = Dim - dist;
       if (match > best_match) {
         best_match = match;
         best_index = i;
       }
+
+
     }
     return entries_[best_index];
   }
 
-  std::size_t size() const {
+  [[nodiscard]] std::size_t Size() const noexcept {
     return size_;
   }
+
+
 
  private:
   std::array<core::HyperVector<Dim, bool>, Capacity> entries_{};
   std::size_t size_ = 0;
 };
 
-}  // namespace memory
-}  // namespace hyperstream
+}  // namespace hyperstream::memory

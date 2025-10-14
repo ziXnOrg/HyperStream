@@ -1,0 +1,5 @@
+add_test([=[SymbolEncoder.DeterministicAndRoleRotationEquivalence]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build_ci/tests/Release/symbol_encoder_tests.exe [==[--gtest_filter=SymbolEncoder.DeterministicAndRoleRotationEquivalence]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[SymbolEncoder.DeterministicAndRoleRotationEquivalence]=]  PROPERTIES WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build_ci/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+add_test([=[SymbolEncoder.EncodeIdMatchesRepeatedCalls]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build_ci/tests/Release/symbol_encoder_tests.exe [==[--gtest_filter=SymbolEncoder.EncodeIdMatchesRepeatedCalls]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[SymbolEncoder.EncodeIdMatchesRepeatedCalls]=]  PROPERTIES WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build_ci/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+set(  symbol_encoder_tests_TESTS SymbolEncoder.DeterministicAndRoleRotationEquivalence SymbolEncoder.EncodeIdMatchesRepeatedCalls)

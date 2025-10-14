@@ -1,17 +1,16 @@
 #include <gtest/gtest.h>
-
 #include <random>
 
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 
-using hyperstream::core::HyperVector;
 using hyperstream::core::BinaryBundler;
 using hyperstream::core::Bind;
-using hyperstream::core::PermuteRotate;
-using hyperstream::core::HammingDistance;
-using hyperstream::core::NormalizedHammingSimilarity;
 using hyperstream::core::CosineSimilarity;
+using hyperstream::core::HammingDistance;
+using hyperstream::core::HyperVector;
+using hyperstream::core::NormalizedHammingSimilarity;
+using hyperstream::core::PermuteRotate;
 
 namespace {
 
@@ -29,7 +28,9 @@ TEST(HyperVectorBinary, GetSetBits) {
 TEST(BindingBinary, XorBinding) {
   constexpr std::size_t D = 64;
   HyperVector<D, bool> a, b, out;
-  a.Clear(); b.Clear(); out.Clear();
+  a.Clear();
+  b.Clear();
+  out.Clear();
   a.SetBit(1, true);
   b.SetBit(1, true);
   b.SetBit(2, true);
@@ -41,7 +42,8 @@ TEST(BindingBinary, XorBinding) {
 TEST(BundlingBinary, MajorityCounters) {
   constexpr std::size_t D = 32;
   HyperVector<D, bool> x1, x2, out;
-  x1.Clear(); x2.Clear();
+  x1.Clear();
+  x2.Clear();
   // x1 has bits 0..15 set; x2 has bits 8..23 set
   for (std::size_t i = 0; i < 16; ++i) x1.SetBit(i, true);
   for (std::size_t i = 8; i < 24 && i < D; ++i) x2.SetBit(i, true);
@@ -68,12 +70,13 @@ TEST(PermutationBinary, RotateLeft) {
 TEST(SimilarityBinary, HammingAndNormalized) {
   constexpr std::size_t D = 64;
   HyperVector<D, bool> a, b;
-  a.Clear(); b.Clear();
+  a.Clear();
+  b.Clear();
   a.SetBit(0, true);
   b.SetBit(0, true);
   b.SetBit(1, true);
   EXPECT_EQ(HammingDistance(a, b), 1u);
-  const float sim = NormalizedHammingSimilarity(a, b);
+  const float sim = NormalizedHammingSimilarity<D>({&a, &b});
   // When D=64 and hamming=1, sim = 1 - 2/64 = 0.96875
   EXPECT_NEAR(sim, 0.96875f, 1e-6f);
 }
@@ -85,12 +88,11 @@ TEST(SimilarityComplex, Cosine) {
     a[i] = {1.0f, 0.0f};
     b[i] = {1.0f, 0.0f};
   }
-  const float sim = CosineSimilarity(a, b);
+  const float sim = CosineSimilarity<D, std::complex<float>>({&a, &b});
   EXPECT_NEAR(sim, 1.0f, 1e-6f);
 }
 
 }  // namespace
-
 
 TEST(BundlingBinary, SaturatingCountersUp) {
   constexpr std::size_t D = 64;
@@ -108,7 +110,7 @@ TEST(BundlingBinary, SaturatingCountersUp) {
 TEST(BundlingBinary, SaturatingCountersDown) {
   constexpr std::size_t D = 64;
   HyperVector<D, bool> zeros, out;
-  zeros.Clear(); // all bits false -> contributes -1 per bit
+  zeros.Clear();  // all bits false -> contributes -1 per bit
   BinaryBundler<D> bundler;
   bundler.Reset();
   for (int it = 0; it < 40000; ++it) bundler.Accumulate(zeros);
@@ -116,11 +118,11 @@ TEST(BundlingBinary, SaturatingCountersDown) {
   for (std::size_t i = 0; i < D; ++i) EXPECT_FALSE(out.GetBit(i));
 }
 
-
 TEST(PropertyCoreOps, BindInvertibility_FixedSeed) {
   constexpr std::size_t D = 256;
   HyperVector<D, bool> a, key, bound, recovered;
-  a.Clear(); key.Clear();
+  a.Clear();
+  key.Clear();
   std::mt19937 gen(42);
   std::bernoulli_distribution dist(0.5);
   for (std::size_t i = 0; i < D; ++i) {
@@ -137,7 +139,9 @@ TEST(PropertyCoreOps, BindInvertibility_FixedSeed) {
 TEST(PropertyCoreOps, HammingTriangleInequality_FixedSeed) {
   constexpr std::size_t D = 256;
   HyperVector<D, bool> a, b, c;
-  a.Clear(); b.Clear(); c.Clear();
+  a.Clear();
+  b.Clear();
+  c.Clear();
   std::mt19937 gen(42);
   std::bernoulli_distribution dist(0.5);
   for (std::size_t i = 0; i < D; ++i) {
@@ -150,4 +154,3 @@ TEST(PropertyCoreOps, HammingTriangleInequality_FixedSeed) {
   const auto d_ac = HammingDistance(a, c);
   EXPECT_LE(d_ac, d_ab + d_bc);
 }
-

@@ -329,7 +329,8 @@
 
 // Defines the copy constructor
 #define GMOCK_INTERNAL_DEFN_COPY_AND_0_VALUE_PARAMS() \
-  {}  // Avoid https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82134
+  {                                                   \
+  }  // Avoid https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82134
 #define GMOCK_INTERNAL_DEFN_COPY_AND_1_VALUE_PARAMS(...) = default;
 #define GMOCK_INTERNAL_DEFN_COPY_AND_2_VALUE_PARAMS(...) = default;
 #define GMOCK_INTERNAL_DEFN_COPY_AND_3_VALUE_PARAMS(...) = default;
@@ -521,9 +522,8 @@
         GMOCK_INTERNAL_DECL_##value_params)                                    \
         GMOCK_PP_IF(GMOCK_PP_IS_EMPTY(GMOCK_INTERNAL_COUNT_##value_params),    \
                     = default;                                                 \
-                    ,                                                          \
-                    : impl_(std::make_shared<gmock_Impl>(                      \
-                        GMOCK_INTERNAL_LIST_##value_params)){})                \
+                    , : impl_(std::make_shared<gmock_Impl>(                    \
+                          GMOCK_INTERNAL_LIST_##value_params)){})              \
             GMOCK_ACTION_CLASS_(name, value_params)(const GMOCK_ACTION_CLASS_( \
                 name, value_params) &) noexcept GMOCK_INTERNAL_DEFN_COPY_      \
         ##value_params                                                         \
@@ -600,13 +600,13 @@ template <std::size_t index, typename... Params>
 struct InvokeArgumentAction {
   template <typename... Args,
             typename = typename std::enable_if<(index < sizeof...(Args))>::type>
-  auto operator()(Args &&...args) const -> decltype(internal::InvokeArgument(
+  auto operator()(Args&&... args) const -> decltype(internal::InvokeArgument(
       std::get<index>(std::forward_as_tuple(std::forward<Args>(args)...)),
-      std::declval<const Params &>()...)) {
-    internal::FlatTuple<Args &&...> args_tuple(FlatTupleConstructTag{},
-                                               std::forward<Args>(args)...);
-    return params.Apply([&](const Params &...unpacked_params) {
-      auto &&callable = args_tuple.template Get<index>();
+      std::declval<const Params&>()...)) {
+    internal::FlatTuple<Args&&...> args_tuple(FlatTupleConstructTag{},
+                                              std::forward<Args>(args)...);
+    return params.Apply([&](const Params&... unpacked_params) {
+      auto&& callable = args_tuple.template Get<index>();
       return internal::InvokeArgument(
           std::forward<decltype(callable)>(callable), unpacked_params...);
     });
@@ -646,7 +646,7 @@ struct InvokeArgumentAction {
 //   later.
 template <std::size_t index, typename... Params>
 internal::InvokeArgumentAction<index, typename std::decay<Params>::type...>
-InvokeArgument(Params &&...params) {
+InvokeArgument(Params&&... params) {
   return {internal::FlatTuple<typename std::decay<Params>::type...>(
       internal::FlatTupleConstructTag{}, std::forward<Params>(params)...)};
 }

@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build_capi/tests/snapshot_restore_tests[1]_tests.cmake")
+  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build_capi/tests/snapshot_restore_tests[1]_tests.cmake")
+else()
+  add_test(snapshot_restore_tests_NOT_BUILT snapshot_restore_tests_NOT_BUILT)
+endif()

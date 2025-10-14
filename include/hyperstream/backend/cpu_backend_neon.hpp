@@ -1,5 +1,15 @@
 #pragma once
 
+// =============================================================================
+// File:        include/hyperstream/backend/cpu_backend_neon.hpp
+// Overview:    NEON-accelerated primitives (Bind, Hamming) for AArch64.
+// Mathematical Foundation: XOR-bind; Hamming via per-byte popcount and sum.
+// Security Considerations: Unaligned loads/stores; contiguous word layout;
+//              noexcept functions.
+// Performance Considerations: 128-bit vector ops; scalar tail handling; uses
+//              vcnt and vaddvq for efficient byte popcount and reduction.
+// Examples:    See backend/cpu_backend.hpp for dispatch usage.
+// =============================================================================
 #if defined(__aarch64__) || defined(_M_ARM64)
 
 // NEON-accelerated backend primitives for AArch64 platforms (ARMv8+ Advanced SIMD).
@@ -7,77 +17,105 @@
 // Invariants and I/O contract follow SSE2/AVX2 backends:
 // - Unaligned memory semantics: vld1q_u64/vst1q_u64 (unaligned allowed on AArch64).
 // - Contiguous word layout: operate over HyperVector<Dim,bool>::Words() (uint64_t[]).
-// - Safe tail handling: scalar tail loop completes remainder; final-word mask is handled by callers.
+// - Safe tail handling: scalar tail loop completes remainder; final-word mask is handled by
+// callers.
 // - Compiler targets: NEON is mandatory on AArch64; no special function attributes required.
 
+#include <arm_neon.h>
 #include <cstddef>
 #include <cstdint>
-#include <arm_neon.h>
+#include <span>
+#include <bit>
 
 #include "hyperstream/core/hypervector.hpp"
 
-namespace hyperstream {
-namespace backend {
-namespace neon {
+namespace hyperstream::backend::neon {
 
-/// XOR-bind two arrays of 64-bit words using NEON with unaligned IO.
-inline void BindWords(const std::uint64_t* a, const std::uint64_t* b,
-                      std::uint64_t* out, std::size_t word_count) {
-  const std::size_t neon_words = (word_count / 2) * 2; // 2x u64 per 128-bit lane
-  std::size_t i = 0;
-  for (; i < neon_words; i += 2) {
-    uint64x2_t va = vld1q_u64(reinterpret_cast<const uint64_t*>(&a[i]));
-    uint64x2_t vb = vld1q_u64(reinterpret_cast<const uint64_t*>(&b[i]));
-    uint64x2_t vx = veorq_u64(va, vb);
-    vst1q_u64(reinterpret_cast<uint64_t*>(&out[i]), vx);
-  }
-  for (; i < word_count; ++i) out[i] = a[i] ^ b[i];
+/// Portable 64-bit popcount helper (C++20 first, builtin fallback).
+inline std::size_t Popcount64(std::uint64_t value) noexcept {
+#if defined(__cpp_lib_bitops) && (__cpp_lib_bitops >= 201907L)
+  return static_cast<std::size_t>(std::popcount(value));
+#else
+  return static_cast<std::size_t>(__builtin_popcountll(value));
+#endif
 }
 
-/// Compute Hamming distance between two word arrays using NEON.
-inline std::size_t HammingWords(const std::uint64_t* a, const std::uint64_t* b,
-                                std::size_t word_count) {
-  const std::size_t neon_words = (word_count / 2) * 2;
-  std::size_t total = 0; std::size_t i = 0;
-  for (; i < neon_words; i += 2) {
-    // XOR
-    uint64x2_t va = vld1q_u64(reinterpret_cast<const uint64_t*>(&a[i]));
-    uint64x2_t vb = vld1q_u64(reinterpret_cast<const uint64_t*>(&b[i]));
-    uint64x2_t vx = veorq_u64(va, vb);
-    // Byte popcount then horizontal sum
-    uint8x16_t bytes = vreinterpretq_u8_u64(vx);
-    uint8x16_t pc = vcntq_u8(bytes);
-    // vaddvq_u8 returns the sum of all 16 lanes (fits into <= 128)
-    unsigned int sum = vaddvq_u8(pc);
-    total += static_cast<std::size_t>(sum);
+/// XOR-bind two arrays of 64-bit words using NEON with unaligned IO (span-based primary API).
+inline void BindWords(std::span<const std::uint64_t> lhs_words,
+                      std::span<const std::uint64_t> rhs_words,
+                      std::span<std::uint64_t> out) noexcept {
+  static constexpr std::size_t kWordsPer128Bit = 2U;  // 2x u64 per 128-bit lane
+  const auto word_count = lhs_words.size();
+  const auto vector_loop_words = (word_count / kWordsPer128Bit) * kWordsPer128Bit;
+  std::size_t word_index = 0;
+  for (; word_index < vector_loop_words; word_index += kWordsPer128Bit) {
+    const uint64x2_t vec_lhs = vld1q_u64(lhs_words.data() + word_index);
+    const uint64x2_t vec_rhs = vld1q_u64(rhs_words.data() + word_index);
+    const uint64x2_t vec_xor = veorq_u64(vec_lhs, vec_rhs);
+    vst1q_u64(out.data() + word_index, vec_xor);
   }
-  for (; i < word_count; ++i) total += static_cast<std::size_t>(__builtin_popcountll(a[i] ^ b[i]));
+  for (; word_index < word_count; ++word_index) {
+    out[word_index] = lhs_words[word_index] ^ rhs_words[word_index];
+  }
+}
+
+/// Pointer-based forwarder for legacy call sites.
+inline void BindWords(const std::uint64_t* lhs_words, const std::uint64_t* rhs_words,
+                      std::uint64_t* out, std::size_t word_count) noexcept {
+  BindWords(std::span<const std::uint64_t>(lhs_words, word_count),
+            std::span<const std::uint64_t>(rhs_words, word_count),
+            std::span<std::uint64_t>(out, word_count));
+}
+
+/// Compute Hamming distance between two word arrays using NEON (span-based primary API).
+inline std::size_t HammingWords(std::span<const std::uint64_t> lhs_words,
+                                std::span<const std::uint64_t> rhs_words) noexcept {
+  static constexpr std::size_t kWordsPer128Bit = 2U;
+  const auto word_count = lhs_words.size();
+  const auto vector_loop_words = (word_count / kWordsPer128Bit) * kWordsPer128Bit;
+  std::size_t total = 0;
+  std::size_t word_index = 0;
+  for (; word_index < vector_loop_words; word_index += kWordsPer128Bit) {
+    const uint64x2_t vec_lhs = vld1q_u64(lhs_words.data() + word_index);
+    const uint64x2_t vec_rhs = vld1q_u64(rhs_words.data() + word_index);
+    const uint64x2_t vec_xor = veorq_u64(vec_lhs, vec_rhs);
+    const uint8x16_t xor_bytes = vreinterpretq_u8_u64(vec_xor);
+    const uint8x16_t popcnt_bytes = vcntq_u8(xor_bytes);
+    const auto sum_u32 = static_cast<std::uint32_t>(vaddvq_u8(popcnt_bytes));
+    total += static_cast<std::size_t>(sum_u32);
+  }
+  for (; word_index < word_count; ++word_index) {
+    total += Popcount64(lhs_words[word_index] ^ rhs_words[word_index]);
+  }
   return total;
+}
+
+/// Pointer-based forwarder for legacy call sites.
+inline std::size_t HammingWords(const std::uint64_t* lhs_words, const std::uint64_t* rhs_words,
+                                std::size_t word_count) noexcept {
+  return HammingWords(std::span<const std::uint64_t>(lhs_words, word_count),
+                      std::span<const std::uint64_t>(rhs_words, word_count));
 }
 
 // NEON implementation of Bind (XOR) for binary hypervectors.
 template <std::size_t Dim>
-inline void BindNEON(const core::HyperVector<Dim, bool>& a,
-                     const core::HyperVector<Dim, bool>& b,
-                     core::HyperVector<Dim, bool>* out) {
-  const auto& aw = a.Words();
-  const auto& bw = b.Words();
-  auto& ow = out->Words();
-  BindWords(aw.data(), bw.data(), ow.data(), aw.size());
+inline void BindNEON(const core::HyperVector<Dim, bool>& a, const core::HyperVector<Dim, bool>& b,
+                     core::HyperVector<Dim, bool>* out) noexcept {
+  const auto& lhs_words = a.Words();
+  const auto& rhs_words = b.Words();
+  auto& out_words = out->Words();
+  BindWords(lhs_words, rhs_words, out_words);
 }
 
 // NEON implementation of Hamming distance.
 template <std::size_t Dim>
 inline std::size_t HammingDistanceNEON(const core::HyperVector<Dim, bool>& a,
-                                       const core::HyperVector<Dim, bool>& b) {
-  const auto& aw = a.Words();
-  const auto& bw = b.Words();
-  return HammingWords(aw.data(), bw.data(), aw.size());
+                                       const core::HyperVector<Dim, bool>& b) noexcept {
+  const auto& lhs_words = a.Words();
+  const auto& rhs_words = b.Words();
+  return HammingWords(lhs_words, rhs_words);
 }
 
-} // namespace neon
-} // namespace backend
-} // namespace hyperstream
+}  // namespace hyperstream::backend::neon
 
-#endif // AArch64 guard
-
+#endif  // AArch64 guard

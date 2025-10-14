@@ -87,6 +87,7 @@ tests/**/Debug/*
 
 # Additional build trees (non-dot-prefixed) and artifacts to ignore
 .augment/rules/imported/rules/
+build/
 build-itemmem/
 build_capi/
 build_ci/

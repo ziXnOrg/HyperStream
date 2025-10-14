@@ -95,6 +95,8 @@ build_ninja_msvc/
 build_ninja_msvc2/
 build_scalar/
 build_vs2022_x64/
+build-msvc/
+build-msvc2/
 # Benchmark NDJSON outputs
 am.ndjson
 cluster.ndjson

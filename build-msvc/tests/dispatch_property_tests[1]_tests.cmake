@@ -1,5 +1,0 @@
-add_test([=[DispatchProperty.InvariantsAcrossDimsAndMasks]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests/Release/dispatch_property_tests.exe [==[--gtest_filter=DispatchProperty.InvariantsAcrossDimsAndMasks]==] --gtest_also_run_disabled_tests)
-set_tests_properties([=[DispatchProperty.InvariantsAcrossDimsAndMasks]=]  PROPERTIES WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-add_test([=[DispatchProperty.BindThreshold_TBD]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests/Release/dispatch_property_tests.exe [==[--gtest_filter=DispatchProperty.DISABLED_BindThreshold_TBD]==] --gtest_also_run_disabled_tests)
-set_tests_properties([=[DispatchProperty.BindThreshold_TBD]=]  PROPERTIES DISABLED TRUE WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-set(  dispatch_property_tests_TESTS DispatchProperty.InvariantsAcrossDimsAndMasks DispatchProperty.BindThreshold_TBD)

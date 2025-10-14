@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests/edge_case_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests/edge_case_tests[1]_tests.cmake")
-else()
-  add_test(edge_case_tests_NOT_BUILT edge_case_tests_NOT_BUILT)
-endif()

@@ -1,5 +1,0 @@
-if(EXISTS "C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests/forced_scalar_tests[1]_tests.cmake")
-  include("C:/Users/cisco/Desktop/dev/research/HyperStream/build-msvc/tests/forced_scalar_tests[1]_tests.cmake")
-else()
-  add_test(forced_scalar_tests_NOT_BUILT forced_scalar_tests_NOT_BUILT)
-endif()

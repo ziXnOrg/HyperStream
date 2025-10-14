@@ -1,0 +1,14 @@
+refactor(neon): modernize NEON backend to C++20 std::span and portable popcount
+
+Migrated NEON backend (cpu_backend_neon.hpp) to span-based APIs and added Popcount64 helper using C++20 std::popcount with builtin fallback. Removed unnecessary casts in NEON loads/stores; identifier renames to satisfy readability and runtime-int checks. Achieves parity with SSE2/AVX2 modernization with zero-lint (no suppressions).
+
+Verification:
+- clang-tidy: clean on this TU
+- Build: PASS (local)
+- Tests: PASS (local)
+- macOS arm64 CI previously green on NEON path
+
+Files changed:
+- include/hyperstream/backend/cpu_backend_neon.hpp
+- Docs/DEVLOG.md
+- .gitignore (allow Docs/ to be tracked)

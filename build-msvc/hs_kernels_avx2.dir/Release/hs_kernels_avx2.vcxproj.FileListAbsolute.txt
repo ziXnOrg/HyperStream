@@ -1,0 +1,1 @@
+C:\Users\cisco\Desktop\dev\research\HyperStream\build-msvc\hs_kernels_avx2.dir\Release\hs_kernels_avx2.lib

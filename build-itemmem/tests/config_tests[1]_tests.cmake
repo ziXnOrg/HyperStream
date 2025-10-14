@@ -1,0 +1,5 @@
+add_test([=[Config.DefaultsAndProfiles]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build-itemmem/tests/Release/config_tests.exe [==[--gtest_filter=Config.DefaultsAndProfiles]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[Config.DefaultsAndProfiles]=]  PROPERTIES WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build-itemmem/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+add_test([=[Config.FootprintHelpersAreCorrectForSmallDims]=]  C:/Users/cisco/Desktop/dev/research/HyperStream/build-itemmem/tests/Release/config_tests.exe [==[--gtest_filter=Config.FootprintHelpersAreCorrectForSmallDims]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[Config.FootprintHelpersAreCorrectForSmallDims]=]  PROPERTIES WORKING_DIRECTORY C:/Users/cisco/Desktop/dev/research/HyperStream/build-itemmem/tests SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+set(  config_tests_TESTS Config.DefaultsAndProfiles Config.FootprintHelpersAreCorrectForSmallDims)

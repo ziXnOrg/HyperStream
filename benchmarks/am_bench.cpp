@@ -126,14 +126,17 @@ static void print_json_sample(const char* name, std::size_t dim_bits, std::size_
 
 template <std::size_t Dim, std::size_t Capacity, typename ClassifyFn>
 static void bench_am(const char* name, std::size_t size, ClassifyFn&& classify, const Settings& s) {
-  PrototypeMemory<Dim, Capacity> am;
+  // Allocate PrototypeMemory on the heap to minimize stack usage on Windows.
+  // This ensures that even when small configs choose stack-backed internal storage,
+  // the large Entry array lives on the heap, preventing stack pressure.
+  auto am = std::make_unique<PrototypeMemory<Dim, Capacity>>();
   // Fill entries deterministically up to 'size'
   std::uint64_t seed = 12345;
   for (std::size_t i = 0; i < size && i < Capacity; ++i) {
     HyperVector<Dim, bool> hv;
     hv.Clear();
     fill_random(&hv, seed);
-    (void)am.Learn(i + 1, hv);
+    (void)am->Learn(i + 1, hv);
   }
   HyperVector<Dim, bool> query;
   query.Clear();
@@ -146,7 +149,7 @@ static void bench_am(const char* name, std::size_t size, ClassifyFn&& classify, 
   if (s.warmup_ms > 0) {
     (void)run_for_ms(
         [&](volatile std::uint64_t* sink) {
-          const auto lbl = classify(am, query);
+          const auto lbl = classify(*am, query);
           *sink ^= lbl;
         },
         s.warmup_ms);
@@ -160,7 +163,7 @@ static void bench_am(const char* name, std::size_t size, ClassifyFn&& classify, 
   for (int si = 0; si < s.samples; ++si) {
     auto [iters, secs] = run_for_ms(
         [&](volatile std::uint64_t* sink) {
-          const auto lbl = classify(am, query);
+          const auto lbl = classify(*am, query);
           *sink ^= lbl;
         },
         s.measure_ms);

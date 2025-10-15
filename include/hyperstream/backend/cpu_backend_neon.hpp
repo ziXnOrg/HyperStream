@@ -91,14 +91,20 @@ inline std::size_t HammingWords(std::span<const std::uint64_t> lhs_words,
     const uint8x16_t xor_bytes = vreinterpretq_u8_u64(vec_xor);
     const uint8x16_t popcnt_bytes = vcntq_u8(xor_bytes);
 
-    // Widening pairwise reduction: u8 -> u16 -> u32 -> u64 -> horizontal add
-    // This is more reliable across NEON implementations than vaddvq_u8.
+#if defined(__APPLE__) && defined(__aarch64__)
+    // Fast path (Apple arm64): horizontal add using vaddvq_u8 is safe and fastest here.
+    // Sum of 16 bytes fits in 16*255=4080 (uint16_t).
+    const std::uint16_t sum = vaddvq_u8(popcnt_bytes);
+    total += static_cast<std::size_t>(sum);
+#else
+    // Safe fallback: widening pairwise reduction u8 -> u16 -> u32 -> u64 -> scalar add.
     const uint16x8_t sum16 = vpaddlq_u8(popcnt_bytes);   // 16x u8 -> 8x u16
     const uint32x4_t sum32 = vpaddlq_u16(sum16);         // 8x u16 -> 4x u32
     const uint64x2_t sum64 = vpaddlq_u32(sum32);         // 4x u32 -> 2x u64
     const std::uint64_t lane0 = vgetq_lane_u64(sum64, 0);
     const std::uint64_t lane1 = vgetq_lane_u64(sum64, 1);
     total += static_cast<std::size_t>(lane0 + lane1);
+#endif
   }
   for (; i < n; ++i) {
     total += Popcount64(lhs_words[i] ^ rhs_words[i]);

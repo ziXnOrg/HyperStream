@@ -1,0 +1,32 @@
+{
+  "timestamp_utc": "20251018T041751Z",
+  "git_sha": "2261c5c6a0fc81cb7d75797f39133085fe8d93b2",
+  "git_branch": "feat/phase-h-neon-backend-modernization-20251014",
+  "runner_os": "Linux",
+  "image_os": "ubuntu24",
+  "image_version": "20251014.76.1",
+  "uname": "Linux runnervmzdgdc 6.14.0-1012-azure #12~24.04.1-Ubuntu SMP Tue Sep  9 19:01:23 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux",
+  "os_release": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"
+NAME=\"Ubuntu\"
+VERSION_ID=\"24.04\"
+VERSION=\"24.04.3 LTS (Noble Numbat)\"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL=\"https://www.ubuntu.com/\"
+SUPPORT_URL=\"https://help.ubuntu.com/\"
+BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"
+PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo",
+  "cmake_version": "cmake version 3.31.6",
+  "compiler_version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "cmake_cache": {
+    "build_type": "Release"
+  },
+  "artifacts": {
+    "am_baseline": "am_baseline_linux_20251018T041751Z.ndjson",
+    "cluster_baseline": "cluster_baseline_linux_20251018T041751Z.ndjson",
+    "combined": "linux_baseline.ndjson"
+  }
+}

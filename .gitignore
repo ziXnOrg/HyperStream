@@ -1,10 +1,4 @@
-# Build trees and generated files
-/build/
-/build-*/
-/cmake-build-*/
-/bin/
 /lib/
-/out/
 /dist/
 
 # CMake artifacts
@@ -49,17 +43,35 @@ compile_commands.json
 .vscode/
 .idea/
 .clangd/
-.clang-tidy
 .cache/
 .DS_Store
 Thumbs.db
 
 # Local tools
 .windsurf/
+.cursor/
 
-# Keep documentation private
-Docs/
-docs/
+
+# Build trees and generated files
+.build/*
+.build_capi/*
+.build_ci/*
+.build_ninja/*
+.build_ninja_clangcl/*
+.build_ninja_msvc/*
+.build_ninja_msvc2/*
+.build_scalar/*
+.build_tidy/*
+.build_vs2022_x64/*
+.build-clangtidy/*
+.build-itemmem/*
+.build-msvc/*
+.build-msvc2/*
+.build-scalar/*
+.build-tidy/*
+.build-vs2022_x64/*
+.tlog/*
+
 
 # Benchmark/test runtime outputs (if any outside build/)
 benchmarks/**/Release/*
@@ -67,3 +79,82 @@ benchmarks/**/Debug/*
 tests/**/Release/*
 tests/**/Debug/*
 
+
+
+# Additional build trees (non-dot-prefixed) and artifacts to ignore
+.augment/rules/imported/rules/
+build/
+build-itemmem/
+build_capi/
+build_ci/
+build_ninja_clangcl/
+build_ninja_msvc/
+build_ninja_msvc2/
+build_scalar/
+build_vs2022_x64/
+build-msvc/
+build-msvc2/
+# Benchmark NDJSON outputs
+*.ndjson
+# Local helper files
+COMMIT_MSG.txt
+
+# Professional C++ repo additions
+# IDE/editor caches
+.ccls-cache/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS-specific
+desktop.ini
+._*
+.Trashes
+.Spotlight-V100
+
+# CMake/IDE build trees and local presets
+cmake-build-*/
+CMakeUserPresets.json
+
+# Coverage / profiling
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+default.profraw
+*.pgd
+*.pgc
+
+# Temp / merge leftovers
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+*.swn
+*.orig
+*.rej
+# Optional: uncomment if logs should never be tracked
+# *.log
+
+# Debug symbol bundles / crash dumps
+*.dSYM/
+*.dmp
+
+# Visual Studio databases
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.sdf
+*.opensdf
+
+
+# Allow committed perf baselines and provenance under ci/perf_baseline
+!ci/perf_baseline/
+!ci/perf_baseline/*.ndjson
+!ci/perf_baseline/*provenance*.json
+!ci/perf_baseline/*baseline*

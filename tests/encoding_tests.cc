@@ -56,16 +56,16 @@ TEST(RandomBasisEncoder, DeterministicAcrossInstances) {
 
 TEST(HashEncoder, SetsKBitsAndRespectsRolePermutation) {
   static constexpr std::size_t kDim = 128;
-  static constexpr int k = 6;
-  HashEncoder<kDim> encoder(k, 0xfeedface12345678ULL);
+  static constexpr int kHashes = 6;
+  HashEncoder<kDim> encoder({kHashes, 0xfeedface12345678ULL});
 
   HyperVector<kDim, bool> hv_base;
   HyperVector<kDim, bool> hv_role;
-  encoder.EncodeToken("sensor-42", 0, &hv_base);
-  encoder.EncodeToken("sensor-42", 5, &hv_role);
+  encoder.EncodeToken({"sensor-42", 0}, &hv_base);
+  encoder.EncodeToken({"sensor-42", 5}, &hv_role);
 
-  EXPECT_EQ(CountOnes(hv_base), k);
-  EXPECT_EQ(CountOnes(hv_role), k);
+  EXPECT_EQ(CountOnes(hv_base), kHashes);
+  EXPECT_EQ(CountOnes(hv_role), kHashes);
 
   HyperVector<kDim, bool> rotated;
   PermuteRotate(hv_base, 5, &rotated);

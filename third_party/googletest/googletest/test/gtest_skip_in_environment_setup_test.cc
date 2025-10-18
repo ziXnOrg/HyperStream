@@ -41,7 +41,7 @@ class SetupEnvironment : public testing::Environment {
 
 TEST(Test, AlwaysFails) { EXPECT_EQ(true, false); }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
 
   testing::AddGlobalTestEnvironment(new SetupEnvironment());

@@ -396,7 +396,7 @@ TEST(DirectoryTest, EmptyPathDirectoryDoesNotExist) {
 
 TEST(DirectoryTest, CurrentDirectoryExists) {
 #ifdef GTEST_OS_WINDOWS  // We are on Windows.
-#ifndef _WIN32_CE     // Windows CE doesn't have a current directory.
+#ifndef _WIN32_CE        // Windows CE doesn't have a current directory.
 
   EXPECT_TRUE(FilePath(".").DirectoryExists());
   EXPECT_TRUE(FilePath(".\\").DirectoryExists());

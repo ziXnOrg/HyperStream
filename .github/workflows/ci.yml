@@ -8,12 +8,18 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and Test (${{ matrix.os }})
+    name: Build and Test (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            label: ubuntu-latest
+          - os: windows-latest
+            label: windows-latest
+          - os: macos-14
+            label: macOS 14 (arm64)
     steps:
       - name: Checkout
         uses: actions/checkout@v4

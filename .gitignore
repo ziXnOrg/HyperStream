@@ -151,3 +151,10 @@ default.profraw
 *.VC.VC.opendb
 *.sdf
 *.opensdf
+
+
+# Allow committed perf baselines and provenance under ci/perf_baseline
+!ci/perf_baseline/
+!ci/perf_baseline/*.ndjson
+!ci/perf_baseline/*provenance*.json
+!ci/perf_baseline/*baseline*

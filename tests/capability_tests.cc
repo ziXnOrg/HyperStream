@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "hyperstream/backend/capability.hpp"
 
 TEST(Capability, DetectionAndMaskAreSelfConsistent) {
@@ -23,4 +24,3 @@ TEST(Capability, DetectionAndMaskAreSelfConsistent) {
   EXPECT_EQ(HasFeature(mask, CpuFeature::AVX2), avx2);
 #endif
 }
-

@@ -34,8 +34,8 @@
 // Use class definitions to test from this header.
 #include <tuple>
 
-#include "prime_tables.h"
 #include "gtest/gtest.h"
+#include "prime_tables.h"
 namespace {
 
 // Suppose we want to introduce a new, improved implementation of PrimeTable

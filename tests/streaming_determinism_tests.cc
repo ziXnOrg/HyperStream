@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
+#include <gtest/gtest.h>
 #include <random>
 #include <string>
 #include <string_view>
@@ -12,8 +12,8 @@
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
 #include "hyperstream/encoding/item_memory.hpp"
-#include "hyperstream/encoding/symbol.hpp"
 #include "hyperstream/encoding/numeric.hpp"
+#include "hyperstream/encoding/symbol.hpp"
 #include "hyperstream/memory/associative.hpp"
 
 namespace {
@@ -21,11 +21,11 @@ namespace {
 using hyperstream::core::Bind;
 using hyperstream::core::HyperVector;
 using hyperstream::encoding::ItemMemory;
+using hyperstream::encoding::RandomProjectionEncoder;
 using hyperstream::encoding::SymbolEncoder;
 using hyperstream::encoding::ThermometerEncoder;
-using hyperstream::encoding::RandomProjectionEncoder;
-using hyperstream::memory::PrototypeMemory;
 using hyperstream::memory::ClusterMemory;
+using hyperstream::memory::PrototypeMemory;
 
 static std::string TestsDir() {
 #ifdef HYPERSTREAM_TESTS_DIR
@@ -34,7 +34,6 @@ static std::string TestsDir() {
   return std::string("tests");
 #endif
 }
-
 
 static const char* BackendId() {
 #ifdef HYPERSTREAM_FORCE_SCALAR
@@ -72,8 +71,8 @@ struct Event {
   std::uint64_t seq = 0;
   std::string src;
   std::string eid;
-  std::string kind; // symbol|numeric|vector|label
-  std::int64_t ts_ms = 0; // informational only
+  std::string kind;        // symbol|numeric|vector|label
+  std::int64_t ts_ms = 0;  // informational only
   // payload (only one active by kind)
   std::string sym;
   double val = 0.0;
@@ -83,18 +82,21 @@ struct Event {
 
 // Tiny ad-hoc NDJSON parser for the canonical schema (no external deps)
 static bool ParseEventLine(const std::string& line, Event* ev) {
-  auto find_str = [&](const char* key, std::string* out)->bool{
+  auto find_str = [&](const char* key, std::string* out) -> bool {
     const std::string k = std::string("\"") + key + "\":";
     auto p = line.find(k);
     if (p == std::string::npos) return false;
     p += k.size();
-    if (line[p] == '"') ++p; else return false;
+    if (line[p] == '"')
+      ++p;
+    else
+      return false;
     auto q = line.find('"', p);
     if (q == std::string::npos) return false;
     *out = line.substr(p, q - p);
     return true;
   };
-  auto find_num_i64 = [&](const char* key, std::int64_t* out)->bool{
+  auto find_num_i64 = [&](const char* key, std::int64_t* out) -> bool {
     const std::string k = std::string("\"") + key + "\":";
     auto p = line.find(k);
     if (p == std::string::npos) return false;
@@ -105,13 +107,15 @@ static bool ParseEventLine(const std::string& line, Event* ev) {
     *out = std::stoll(line.substr(p, q - p));
     return true;
   };
-  auto find_num_double = [&](const char* key, double* out)->bool{
+  auto find_num_double = [&](const char* key, double* out) -> bool {
     const std::string k = std::string("\"") + key + "\":";
     auto p = line.find(k);
     if (p == std::string::npos) return false;
     p += k.size();
     auto q = p;
-    while (q < line.size() && (line[q] == '-' || line[q] == '.' || (line[q] >= '0' && line[q] <= '9'))) ++q;
+    while (q < line.size() &&
+           (line[q] == '-' || line[q] == '.' || (line[q] >= '0' && line[q] <= '9')))
+      ++q;
     *out = std::stod(line.substr(p, q - p));
     return true;
   };
@@ -140,7 +144,9 @@ static bool ParseEventLine(const std::string& line, Event* ev) {
         // skip spaces
         while (p < line.size() && (line[p] == ' ' || line[p] == ',')) ++p;
         auto q = p;
-        while (q < line.size() && (line[q] == '-' || line[q] == '.' || (line[q] >= '0' && line[q] <= '9'))) ++q;
+        while (q < line.size() &&
+               (line[q] == '-' || line[q] == '.' || (line[q] >= '0' && line[q] <= '9')))
+          ++q;
         if (q > p) {
           ev->vec.push_back(static_cast<float>(std::stod(line.substr(p, q - p))));
           p = q;
@@ -164,7 +170,7 @@ static bool TotalOrderLt(const Event& a, const Event& b) {
 
 // Compute checkpoint hashes at every K events and final, returning vector of hashes
 struct StreamResult {
-  std::vector<std::uint64_t> checkpoints; // at K, 2K, ...
+  std::vector<std::uint64_t> checkpoints;  // at K, 2K, ...
   std::uint64_t final_hash = 0;
 };
 
@@ -172,7 +178,7 @@ struct StreamResult {
 // Chunker yields next slice size given remaining count (strategies implemented in tests)
 static StreamResult IngestStream(const std::vector<Event>& ordered,
                                  std::function<std::size_t(std::size_t)> next_chunk,
-                                 int K /*checkpoint interval*/ ) {
+                                 int K /*checkpoint interval*/) {
   static constexpr std::size_t D = 256;
   // Fixed encoder parameters
   SymbolEncoder<D> sym(0x9e3779b97f4a7c15ull);
@@ -181,12 +187,13 @@ static StreamResult IngestStream(const std::vector<Event>& ordered,
   ItemMemory<D> item(0x123456789abcdef0ull);
 
   PrototypeMemory<D, 16> pmem;
-  ClusterMemory<D, 4> cmem; // use label 1 as observation cluster
+  ClusterMemory<D, 4> cmem;  // use label 1 as observation cluster
 
-  HyperVector<D, bool> last_obs; last_obs.Clear();
+  HyperVector<D, bool> last_obs;
+  last_obs.Clear();
   HyperVector<D, bool> hv, out;
 
-  std::uint64_t mix = 0; // rolling mix to include prototype words too
+  std::uint64_t mix = 0;  // rolling mix to include prototype words too
   StreamResult res;
 
   std::size_t i = 0;
@@ -209,7 +216,7 @@ static StreamResult IngestStream(const std::vector<Event>& ordered,
       } else if (ev.kind == "vector") {
         // normalize vector length by truncating/padding zeros
         const std::size_t n = ev.vec.size();
-        const std::size_t use = n; // RandomProjection takes arbitrary length
+        const std::size_t use = n;  // RandomProjection takes arbitrary length
         if (use > 0) {
           proj.Encode(ev.vec.data(), static_cast<int>(use), &hv);
         } else {
@@ -219,16 +226,19 @@ static StreamResult IngestStream(const std::vector<Event>& ordered,
         last_obs = hv;
       } else if (ev.kind == "label") {
         // Bind last observation to label HV and learn into prototypes
-        HyperVector<D, bool> hv_label; item.EncodeToken(ev.label, &hv_label);
-        HyperVector<D, bool> bound; Bind(last_obs, hv_label, &bound);
-        const std::uint64_t label_id = hyperstream::encoding::detail_itemmemory::Fnv1a64(ev.label, 0xfeedf00dULL);
+        HyperVector<D, bool> hv_label;
+        item.EncodeToken(ev.label, &hv_label);
+        HyperVector<D, bool> bound;
+        Bind(last_obs, hv_label, &bound);
+        const std::uint64_t label_id =
+            hyperstream::encoding::detail_itemmemory::Fnv1a64(ev.label, 0xfeedf00dULL);
         (void)pmem.Learn(label_id, bound);
       }
 
       // Mix some prototype words into rolling state for stronger coverage
-      if (pmem.size() > 0) {
-        const auto* entries = pmem.data();
-        const auto& words = entries[pmem.size() - 1].hv.Words();
+      if (pmem.Size() > 0) {
+        const auto* entries = pmem.Data();
+        const auto& words = entries[pmem.Size() - 1].hv.Words();
         mix ^= words[0];
       }
 
@@ -266,14 +276,13 @@ static std::vector<Event> LoadCanonicalEvents() {
 static std::string ReadTextFile(const std::string& path) {
   std::ifstream f(path, std::ios::binary);
   EXPECT_TRUE(f.good()) << "open failed: " << path;
-  std::ostringstream ss; ss << f.rdbuf();
+  std::ostringstream ss;
+  ss << f.rdbuf();
   return ss.str();
 }
 
-static bool ExtractBackendHashes(const std::string& json,
-                                 const char* backend,
-                                 std::vector<std::string>* checkpoints,
-                                 std::string* final_hex) {
+static bool ExtractBackendHashes(const std::string& json, const char* backend,
+                                 std::vector<std::string>* checkpoints, std::string* final_hex) {
   const std::string dkey = "\"D256\"";
   const std::string bkey = std::string("\"") + backend + "\"";
   auto dpos = json.find(dkey);
@@ -317,11 +326,14 @@ TEST(StreamingDeterminism, ChunkingInvariance_1_8_64_Random) {
     EXPECT_EQ(ord[i].seq, base[i].seq);
   }
 
-  auto strat1 = [](std::size_t){ return std::size_t(1); };
-  auto strat8 = [](std::size_t){ return std::size_t(8); };
-  auto strat64 = [](std::size_t){ return std::size_t(64); };
+  auto strat1 = [](std::size_t) { return std::size_t(1); };
+  auto strat8 = [](std::size_t) { return std::size_t(8); };
+  auto strat64 = [](std::size_t) { return std::size_t(64); };
   std::mt19937 rng(12345);
-  auto stratR = [&](std::size_t rem){ std::uniform_int_distribution<int> d(1,64); return (std::size_t)(1 + ((d(rng) + static_cast<int>(rem % 4)) % 64)); };
+  auto stratR = [&](std::size_t rem) {
+    std::uniform_int_distribution<int> d(1, 64);
+    return (std::size_t)(1 + ((d(rng) + static_cast<int>(rem % 4)) % 64));
+  };
 
   const int K = 16;
   const auto r1 = IngestStream(ord, strat1, K);
@@ -344,19 +356,19 @@ TEST(StreamingDeterminism, ChunkingInvariance_1_8_64_Random) {
 
 TEST(StreamingDeterminism, InterleaveParity_PremergedVsSortedMerge) {
   auto base = LoadCanonicalEvents();
-  std::vector<Event> premerged = base; // canonical is premerged
+  std::vector<Event> premerged = base;  // canonical is premerged
   // Simulate re-merge by sorting a copy
   std::vector<Event> merged = base;
   std::stable_sort(merged.begin(), merged.end(), TotalOrderLt);
-  auto strat8 = [](std::size_t){ return std::size_t(8); };
+  auto strat8 = [](std::size_t) { return std::size_t(8); };
   const int K = 16;
   const auto r0 = IngestStream(premerged, strat8, K);
   const auto r1 = IngestStream(merged, strat8, K);
   ASSERT_EQ(r0.checkpoints.size(), r1.checkpoints.size());
-  for (std::size_t i = 0; i < r0.checkpoints.size(); ++i) EXPECT_EQ(r0.checkpoints[i], r1.checkpoints[i]);
+  for (std::size_t i = 0; i < r0.checkpoints.size(); ++i)
+    EXPECT_EQ(r0.checkpoints[i], r1.checkpoints[i]);
   EXPECT_EQ(r0.final_hash, r1.final_hash);
 }
-
 
 TEST(StreamingDeterminism, GoldenParity_CheckpointsAndFinal) {
   ::testing::Test::RecordProperty("backend", BackendId());
@@ -364,7 +376,7 @@ TEST(StreamingDeterminism, GoldenParity_CheckpointsAndFinal) {
   std::vector<Event> ord = base;
   std::stable_sort(ord.begin(), ord.end(), TotalOrderLt);
   const int K = 16;
-  auto strat8 = [](std::size_t){ return std::size_t(8); };
+  auto strat8 = [](std::size_t) { return std::size_t(8); };
   const auto r = IngestStream(ord, strat8, K);
   const std::string json = ReadTextFile(TestsDir() + "/golden/streaming_hashes.json");
   std::vector<std::string> exp_chk;
@@ -383,16 +395,20 @@ TEST(StreamingDeterminism, OutOfOrderArrival_WithReorderBuffer) {
   std::vector<Event> jitter = base;
   if (jitter.size() > 8) {
     for (std::size_t i = 0; i + 4 < jitter.size(); i += 5) {
-      std::swap(jitter[i], jitter[i+4]);
+      std::swap(jitter[i], jitter[i + 4]);
     }
   }
   std::stable_sort(jitter.begin(), jitter.end(), TotalOrderLt);
-  auto stratR = [](std::size_t rem){ (void)rem; return std::size_t(1 + (rem % 7)); };
+  auto stratR = [](std::size_t rem) {
+    (void)rem;
+    return std::size_t(1 + (rem % 7));
+  };
   const int K = 16;
   const auto r0 = IngestStream(base, stratR, K);
   const auto r1 = IngestStream(jitter, stratR, K);
   ASSERT_EQ(r0.checkpoints.size(), r1.checkpoints.size());
-  for (std::size_t i = 0; i < r0.checkpoints.size(); ++i) EXPECT_EQ(r0.checkpoints[i], r1.checkpoints[i]);
+  for (std::size_t i = 0; i < r0.checkpoints.size(); ++i)
+    EXPECT_EQ(r0.checkpoints[i], r1.checkpoints[i]);
   EXPECT_EQ(r0.final_hash, r1.final_hash);
 }
 
@@ -402,12 +418,13 @@ TEST(StreamingDeterminism, EpochWindow_CheckpointsEqual) {
   std::vector<Event> ord = base;
   std::stable_sort(ord.begin(), ord.end(), TotalOrderLt);
   const int K = 16;
-  auto strat1 = [](std::size_t){ return std::size_t(1); };
-  auto strat64 = [](std::size_t){ return std::size_t(64); };
+  auto strat1 = [](std::size_t) { return std::size_t(1); };
+  auto strat64 = [](std::size_t) { return std::size_t(64); };
   const auto r1 = IngestStream(ord, strat1, K);
   const auto r2 = IngestStream(ord, strat64, K);
   ASSERT_EQ(r1.checkpoints.size(), r2.checkpoints.size());
-  for (std::size_t i = 0; i < r1.checkpoints.size(); ++i) EXPECT_EQ(r1.checkpoints[i], r2.checkpoints[i]);
+  for (std::size_t i = 0; i < r1.checkpoints.size(); ++i)
+    EXPECT_EQ(r1.checkpoints[i], r2.checkpoints[i]);
 }
 
 // Disabled generator to dump canonical streaming hashes for golden file
@@ -417,15 +434,13 @@ TEST(StreamingDeterminism, DISABLED_DumpStreamingHashes) {
   std::vector<Event> ord = base;
   std::stable_sort(ord.begin(), ord.end(), TotalOrderLt);
   const int K = 16;
-  auto strat = [](std::size_t){ return std::size_t(8); };
+  auto strat = [](std::size_t) { return std::size_t(8); };
   const auto r = IngestStream(ord, strat, K);
-  std::printf("{\"suite\":\"Streaming\",\"dim\":256,\"backend\":\"%s\",\"chkpt\":[",
-              BackendId());
+  std::printf("{\"suite\":\"Streaming\",\"dim\":256,\"backend\":\"%s\",\"chkpt\":[", BackendId());
   for (std::size_t i = 0; i < r.checkpoints.size(); ++i) {
-    std::printf("%s\"%s\"", (i==0?"":","), Hex64(r.checkpoints[i]).c_str());
+    std::printf("%s\"%s\"", (i == 0 ? "" : ","), Hex64(r.checkpoints[i]).c_str());
   }
   std::printf("],\"final\":\"%s\"}\n", Hex64(r.final_hash).c_str());
 }
 
-} // namespace
-
+}  // namespace

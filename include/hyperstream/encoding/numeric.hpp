@@ -12,33 +12,35 @@
 #include "hyperstream/core/ops.hpp"
 #include "hyperstream/encoding/item_memory.hpp"
 
-namespace hyperstream {
-namespace encoding {
+namespace hyperstream::encoding {
 
 namespace detail_numeric {
 
 // Low-discrepancy order (Van der Corput-inspired) used for thermometer mapping.
 template <std::size_t Dim>
-inline std::array<std::size_t, Dim> BuildOrder() {
+[[nodiscard]] inline std::array<std::size_t, Dim> BuildOrder() noexcept {
   std::array<std::size_t, Dim> order{};
-  for (std::size_t i = 0; i < Dim; ++i) {
-    std::size_t value = 0;
-    std::size_t bits = i;
-    for (std::size_t b = 0; (1ULL << b) <= Dim * 2; ++b) {
-      value = (value << 1) | (bits & 1ULL);
-      bits >>= 1U;
+  for (std::size_t index = 0; index < Dim; ++index) {
+    std::size_t reversed_bits_value = 0;
+    std::size_t remaining_bits = index;
+    static constexpr std::uint64_t kGrowthFactor = 2ULL;
+    for (std::size_t bit_index = 0; (1ULL << bit_index) <= Dim * kGrowthFactor; ++bit_index) {
+      reversed_bits_value = (reversed_bits_value << 1U) | (remaining_bits & 1ULL);
+      remaining_bits >>= 1U;
     }
-    order[i] = value % Dim;
+    order[index] = reversed_bits_value % Dim;
   }
   std::array<bool, Dim> used{};
-  for (std::size_t i = 0; i < Dim; ++i) {
-    std::size_t idx = order[i];
-    if (idx >= Dim || used[idx]) {
-      idx = 0;
-      while (used[idx]) idx++;
-      order[i] = idx;
+  for (std::size_t index = 0; index < Dim; ++index) {
+    std::size_t mapped_index = order[index];
+    if (mapped_index >= Dim || used[mapped_index]) {
+      mapped_index = 0;
+      while (used[mapped_index]) {
+        mapped_index++;
+      }
+      order[index] = mapped_index;
     }
-    used[order[i]] = true;
+    used[order[index]] = true;
   }
   return order;
 }
@@ -58,20 +60,24 @@ inline std::array<std::size_t, Dim> BuildOrder() {
 template <std::size_t Dim>
 class ThermometerEncoder {
  public:
-  ThermometerEncoder(double min, double max)
-      : min_(min), max_(max), order_(detail_numeric::BuildOrder<Dim>()) {}
+  ThermometerEncoder(double min_value, double max_value)
+      : min_(min_value), max_(max_value), order_(detail_numeric::BuildOrder<Dim>()) {}
 
-  void Encode(double x, core::HyperVector<Dim, bool>* out) const {
+  void Encode(double value, core::HyperVector<Dim, bool>* out) const noexcept {
     out->Clear();
     if (!(max_ > min_)) {
       return;  // degenerate range => zero vector
     }
-    double p = (x - min_) / (max_ - min_);
-    if (p < 0.0) p = 0.0;
-    if (p > 1.0) p = 1.0;
-    const std::size_t k = static_cast<std::size_t>(p * static_cast<double>(Dim));
-    for (std::size_t i = 0; i < k && i < Dim; ++i) {
-      out->SetBit(order_[i], true);
+    double proportion = (value - min_) / (max_ - min_);
+    if (proportion < 0.0) {
+      proportion = 0.0;
+    }
+    if (proportion > 1.0) {
+      proportion = 1.0;
+    }
+    const std::size_t num_active_bits = static_cast<std::size_t>(proportion * static_cast<double>(Dim));
+    for (std::size_t bit_index = 0; bit_index < num_active_bits && bit_index < Dim; ++bit_index) {
+      out->SetBit(order_[bit_index], true);
     }
   }
 
@@ -94,27 +100,28 @@ class ThermometerEncoder {
 template <std::size_t Dim>
 class RandomProjectionEncoder {
  public:
-  explicit RandomProjectionEncoder(std::uint64_t seed)
-      : im_(seed ^ 0xa5a5a5a5a5a5a5a5ULL) {}
+  explicit RandomProjectionEncoder(std::uint64_t seed) : im_(seed ^ 0xa5a5a5a5a5a5a5a5ULL) {}
 
-  void Encode(const float* data, std::size_t n, core::HyperVector<Dim, bool>* out) const {
+  void Encode(const float* data_values, std::size_t num_values, core::HyperVector<Dim, bool>* out) const noexcept {
     // Per-bit floating counters avoid arbitrary integer scaling.
     std::array<float, Dim> acc{};  // zero-initialized
 
-    for (std::size_t i = 0; i < n; ++i) {
-      const float v = data[i];
-      if (v == 0.0f) continue;
+    for (std::size_t value_index = 0; value_index < num_values; ++value_index) {
+      const float value = data_values[value_index];
+      if (value == 0.0f) {
+        continue;
+      }
       core::HyperVector<Dim, bool> basis;
-      im_.EncodeId(static_cast<std::uint64_t>(i), &basis);
-      for (std::size_t bit = 0; bit < Dim; ++bit) {
-        acc[bit] += basis.GetBit(bit) ? v : -v;
+      im_.EncodeId(static_cast<std::uint64_t>(value_index), &basis);
+      for (std::size_t bit_index = 0; bit_index < Dim; ++bit_index) {
+        acc[bit_index] += basis.GetBit(bit_index) ? value : -value;
       }
     }
 
     out->Clear();
-    for (std::size_t bit = 0; bit < Dim; ++bit) {
+    for (std::size_t bit_index = 0; bit_index < Dim; ++bit_index) {
       // Strict > 0 ensures empty inputs lead to all-zero output.
-      out->SetBit(bit, acc[bit] > 0.0f);
+      out->SetBit(bit_index, acc[bit_index] > 0.0f);
     }
   }
 
@@ -122,6 +129,4 @@ class RandomProjectionEncoder {
   ItemMemory<Dim> im_;
 };
 
-}  // namespace encoding
-}  // namespace hyperstream
-
+}  // namespace hyperstream::encoding

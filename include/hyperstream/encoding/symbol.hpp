@@ -11,8 +11,7 @@
 #include "hyperstream/core/ops.hpp"
 #include "hyperstream/encoding/item_memory.hpp"
 
-namespace hyperstream {
-namespace encoding {
+namespace hyperstream::encoding {
 
 /**
  * @brief Symbol encoder built on ItemMemory with optional role permutation.
@@ -25,19 +24,19 @@ namespace encoding {
 template <std::size_t Dim>
 class SymbolEncoder {
  public:
-  explicit SymbolEncoder(std::uint64_t seed) : im_(seed) {}
+  explicit SymbolEncoder(std::uint64_t seed_value) : im_(seed_value) {}
 
-  void EncodeToken(std::string_view token, core::HyperVector<Dim, bool>* out) const {
+  void EncodeToken(std::string_view token, core::HyperVector<Dim, bool>* out) const noexcept {
     im_.EncodeToken(token, out);
   }
 
-  void EncodeId(std::uint64_t id, core::HyperVector<Dim, bool>* out) const noexcept {
-    im_.EncodeId(id, out);
+  void EncodeId(std::uint64_t identifier, core::HyperVector<Dim, bool>* out) const noexcept {
+    im_.EncodeId(identifier, out);
   }
 
   // Encode token with role-based rotation by 'role' steps.
   void EncodeTokenRole(std::string_view token, std::size_t role,
-                       core::HyperVector<Dim, bool>* out) const {
+                       core::HyperVector<Dim, bool>* out) const noexcept {
     if (role == 0) {
       im_.EncodeToken(token, out);
       return;
@@ -51,6 +50,4 @@ class SymbolEncoder {
   ItemMemory<Dim> im_;
 };
 
-}  // namespace encoding
-}  // namespace hyperstream
-
+}  // namespace hyperstream::encoding

@@ -378,8 +378,7 @@ TEST_F(TestForDeathTest, FastDeathTestInChangedDir) {
 }
 
 #ifdef GTEST_OS_LINUX
-void SigprofAction(int, siginfo_t*, void*) { /* no op */
-}
+void SigprofAction(int, siginfo_t*, void*) { /* no op */ }
 
 // Sets SIGPROF action and ITIMER_PROF timer (interval: 1ms).
 void SetSigprofActionAndTimer() {

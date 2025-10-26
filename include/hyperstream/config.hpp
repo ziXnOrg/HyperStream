@@ -17,66 +17,71 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace hyperstream {
-namespace config {
+namespace hyperstream::config {
 
 // ---- Profile selection ----
 #if defined(HYPERSTREAM_PROFILE_EMBEDDED)
-static constexpr const char kActiveProfile[] = "embedded";
+static constexpr const char* kActiveProfile = "embedded";
 static constexpr bool kForceHeapForLargeStructures = true;
 #elif defined(HYPERSTREAM_PROFILE_DESKTOP)
-static constexpr const char kActiveProfile[] = "desktop";
+static constexpr const char* kActiveProfile = "desktop";
 static constexpr bool kForceHeapForLargeStructures = false;
 #else
-static constexpr const char kActiveProfile[] = "desktop"; // default
+static constexpr const char* kActiveProfile = "desktop";  // default
 static constexpr bool kForceHeapForLargeStructures = false;
 #endif
 
 // ---- Defaults ----
 #if defined(HYPERSTREAM_PROFILE_EMBEDDED)
-static constexpr std::size_t kDefaultDimBits = 2048;   // reduced for embedded
-static constexpr std::size_t kDefaultCapacity = 16;    // reduced for embedded
+static constexpr std::size_t kDefaultDimBits = 2048;  // reduced for embedded
+static constexpr std::size_t kDefaultCapacity = 16;   // reduced for embedded
 #else
-#  if defined(HYPERSTREAM_DIM_BITS)
+#if defined(HYPERSTREAM_DIM_BITS)
 static constexpr std::size_t kDefaultDimBits = static_cast<std::size_t>(HYPERSTREAM_DIM_BITS);
-#  else
+#else
 static constexpr std::size_t kDefaultDimBits = 10000;
-#  endif
+#endif
 static constexpr std::size_t kDefaultCapacity = 256;
 #endif
 
 // Heap allocation policy threshold: structures >= this many bytes should be heap-allocated
 // to avoid stack overflow and improve robustness across toolchains/runtimes.
-static constexpr std::size_t kHeapAllocThresholdBytes = 1024; // 1 KiB
+static constexpr std::size_t kHeapAllocThresholdBytes = 1024;  // 1 KiB
 
 // Helpers
-constexpr inline bool IsPowerOfTwo(std::size_t x) { return x && ((x & (x - 1)) == 0); }
+constexpr bool IsPowerOfTwo(std::size_t value) {
+  return (value != 0U) && ((value & (value - 1U)) == 0U);
+}
 
 // Footprint helpers (storage-only estimates)
 /// Returns the storage size in bytes of a binary HyperVector with dim_bits.
-constexpr inline std::size_t BinaryHyperVectorStorageBytes(std::size_t dim_bits) {
-  return ((dim_bits + 63) / 64) * sizeof(std::uint64_t);
+constexpr std::size_t BinaryHyperVectorStorageBytes(std::size_t dim_bits) {
+  constexpr std::size_t kBitsPerWord = 64U;
+  constexpr std::size_t kWordMask = kBitsPerWord - 1U; // 63
+  return (((dim_bits + kWordMask) / kBitsPerWord) * sizeof(std::uint64_t));
 }
 /// Returns the storage size in bytes of PrototypeMemory<dim_bits,capacity> entries.
-constexpr inline std::size_t PrototypeMemoryStorageBytes(std::size_t dim_bits, std::size_t capacity) {
+constexpr std::size_t PrototypeMemoryStorageBytes(std::size_t dim_bits,
+                                                  std::size_t capacity) {
   return capacity * (sizeof(std::uint64_t) + BinaryHyperVectorStorageBytes(dim_bits));
 }
 /// Returns the storage size in bytes of ClusterMemory<dim_bits,capacity> counters and metadata.
-constexpr inline std::size_t ClusterMemoryStorageBytes(std::size_t dim_bits, std::size_t capacity) {
-  return capacity * sizeof(std::uint64_t) +  // labels
-         capacity * sizeof(int) +            // counts
-         capacity * dim_bits * sizeof(int);  // sums
+constexpr std::size_t ClusterMemoryStorageBytes(std::size_t dim_bits, std::size_t capacity) {
+  const std::size_t labels_bytes = capacity * sizeof(std::uint64_t);
+  const std::size_t counts_bytes = capacity * sizeof(int);
+  const std::size_t sums_bytes = capacity * dim_bits * sizeof(int);
+  return (labels_bytes) + (counts_bytes) + (sums_bytes);
 }
 /// Returns the storage size in bytes of CleanupMemory<dim_bits,capacity> entries.
-constexpr inline std::size_t CleanupMemoryStorageBytes(std::size_t dim_bits, std::size_t capacity) {
+constexpr std::size_t CleanupMemoryStorageBytes(std::size_t dim_bits, std::size_t capacity) {
   return capacity * BinaryHyperVectorStorageBytes(dim_bits);
 }
 
 // Sanity constraints for defaults
-static_assert(kDefaultDimBits >= 8, "Default dimension must be >= 8 bits");
+static constexpr std::size_t kMinDefaultDimBits = 8U;
+static_assert(kDefaultDimBits >= kMinDefaultDimBits, "Default dimension must be >= 8 bits");
 static_assert(kDefaultCapacity >= 1, "Default capacity must be >= 1");
-static_assert(IsPowerOfTwo(kDefaultCapacity), "Default capacity should be power of two for fast indexing");
+static_assert(IsPowerOfTwo(kDefaultCapacity),
+              "Default capacity should be power of two for fast indexing");
 
-} // namespace config
-} // namespace hyperstream
-
+}  // namespace hyperstream::config

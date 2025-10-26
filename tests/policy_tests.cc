@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "hyperstream/backend/policy.hpp"
 #include "hyperstream/core/hypervector.hpp"
 
@@ -15,7 +16,7 @@ static void FillPattern(HyperVector<Dim, bool>* hv) {
   }
 }
 
-} // namespace
+}  // namespace
 
 TEST(Policy, SelectBindAndHammingProduceCorrectResults) {
   constexpr std::size_t D = 64;
@@ -30,7 +31,7 @@ TEST(Policy, SelectBindAndHammingProduceCorrectResults) {
 
   // Selected backends
   auto bind_fn = hyperstream::backend::SelectBindBackend<D>();
-  auto ham_fn  = hyperstream::backend::SelectHammingBackend<D>();
+  auto ham_fn = hyperstream::backend::SelectHammingBackend<D>();
 
   bind_fn(a, b, &out_sel);
   const std::size_t h_sel = ham_fn(a, b);
@@ -45,7 +46,7 @@ TEST(Policy, SelectBindAndHammingProduceCorrectResults) {
 TEST(Policy, HeuristicPrefersSSE2ForLargeDimsWhenAVX2Present) {
   using namespace hyperstream::backend;
   const std::uint32_t mask = GetCpuFeatureMask();
-  (void)mask; // silence unused when __AVX2__ undefined
+  (void)mask;  // silence unused when __AVX2__ undefined
 #if defined(__AVX2__)
   if (HasFeature(mask, CpuFeature::AVX2)) {
     // Below threshold should prefer AVX2
@@ -68,4 +69,3 @@ TEST(Policy, ThresholdDefaultWhenEnvUnset) {
   const std::size_t thr = GetHammingThreshold();
   EXPECT_EQ(thr, static_cast<std::size_t>(16384));
 }
-

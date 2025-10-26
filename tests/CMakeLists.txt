@@ -26,6 +26,25 @@ endif()
 include(GoogleTest)
 gtest_discover_tests(core_ops_tests)
 
+# Constexpr core ops tests
+add_executable(core_ops_constexpr_tests
+  core_ops_constexpr_tests.cc
+)
+
+target_link_libraries(core_ops_constexpr_tests PRIVATE
+  hyperstream
+  gtest
+  gtest_main
+)
+
+if(MSVC)
+  target_compile_options(core_ops_constexpr_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(core_ops_constexpr_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+gtest_discover_tests(core_ops_constexpr_tests)
+
 add_executable(dispatch_tests
   dispatch_tests.cc
 )
@@ -403,3 +422,30 @@ else()
 endif()
 
 gtest_discover_tests(snapshot_restore_tests)
+
+
+# C API C test (pure C, no gtest)
+add_executable(c_api_tests
+  c_api_tests.c
+)
+
+# Strict warnings for C as well
+if(MSVC)
+  target_compile_options(c_api_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(c_api_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
+# Link against the shared C API library
+target_link_libraries(c_api_tests PRIVATE hyperstream_capi)
+
+# Ensure DLL is discoverable on Windows by copying it next to the test exe
+if(WIN32)
+  add_custom_command(TARGET c_api_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:hyperstream_capi>
+            $<TARGET_FILE_DIR:c_api_tests>)
+endif()
+
+# Register test
+add_test(NAME c_api_tests COMMAND c_api_tests)

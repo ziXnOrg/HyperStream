@@ -118,7 +118,7 @@ void CheckTestFailureCount(int expected_failures) {
 // concurrently.
 TEST(StressTest, CanUseScopedTraceAndAssertionsInManyThreads) {
   {
-    std::unique_ptr<ThreadWithParam<int> > threads[kThreadCount];
+    std::unique_ptr<ThreadWithParam<int>> threads[kThreadCount];
     Notification threads_can_start;
     for (int i = 0; i != kThreadCount; i++)
       threads[i] = std::make_unique<ThreadWithParam<int>>(&ManyAsserts, i,
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
 TEST(StressTest,
      DISABLED_ThreadSafetyTestsAreSkippedWhenGoogleTestIsNotThreadSafe) {}
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

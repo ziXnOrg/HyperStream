@@ -515,7 +515,9 @@ TYPED_TEST_SUITE(ExpectCallTest, ExpectCallTestTypes);
 // Tests that functions with no EXPECT_CALL() rules can be called any
 // number of times.
 TYPED_TEST(ExpectCallTest, UnmentionedFunctionCanBeCalledAnyNumberOfTimes) {
-  { TypeParam b; }
+  {
+    TypeParam b;
+  }
 
   {
     TypeParam b;

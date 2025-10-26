@@ -5,6 +5,15 @@ on:
     branches: [ "**" ]
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Select maintenance action"
+        default: "refresh_ubuntu_baselines"
+        required: false
+
+permissions:
+  contents: write
 
 jobs:
   perf:
@@ -94,23 +103,62 @@ jobs:
           grep -E 'CMAKE_CXX_COMPILER:|CMAKE_CXX_COMPILER_VERSION:|CMAKE_CXX_FLAGS:|CMAKE_BUILD_TYPE:' build/CMakeCache.txt || true
         shell: bash
 
-      - name: Run benches (NDJSON)
-        id: run_benches
+      # Windows-specific execution: use PowerShell call operator '&' for .exe invocation.
+      # Diagnostic instrumentation:
+      # - Run am_bench.exe and cluster_bench.exe separately
+      # - Capture and echo $LASTEXITCODE after each
+      # - Redirect stderr to per-benchmark files and print them if exit!=0
+      # - Preserve NDJSON stdout redirection to am.ndjson/cluster.ndjson
+      - name: Run benches (NDJSON - Windows)
+        if: runner.os == 'Windows'
+        id: run_benches_windows
+        shell: pwsh
+        run: |
+          # Do not stop on first error so we can capture both exit codes
+          $ErrorActionPreference = 'Continue'
+          $AM = "build/benchmarks/Release/am_bench.exe"
+          $CL = "build/benchmarks/Release/cluster_bench.exe"
+          Write-Host "Using $AM and $CL"
+
+          # --- AM bench ---
+          Write-Host "Running AM bench..."
+          & $AM --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES 1> am.ndjson 2> am.err.txt
+          $AM_EXIT = $LASTEXITCODE
+          Write-Host "AM bench exit code: $AM_EXIT"
+          Write-Host ("am.ndjson lines: {0}" -f ((Test-Path am.ndjson) ? (Get-Content am.ndjson).Count : 0))
+          if ($AM_EXIT -ne 0) {
+            Write-Host "----- AM stderr -----"
+            if (Test-Path am.err.txt) { Get-Content am.err.txt | Write-Host } else { Write-Host "(no stderr captured)" }
+          }
+
+          # --- Cluster bench ---
+          Write-Host "Running Cluster bench..."
+          & $CL --json --warmup_ms=$env:WARMUP_MS --measure_ms=$env:MEASURE_MS --samples=$env:SAMPLES 1> cluster.ndjson 2> cluster.err.txt
+          $CL_EXIT = $LASTEXITCODE
+          Write-Host "Cluster bench exit code: $CL_EXIT"
+          Write-Host ("cluster.ndjson lines: {0}" -f ((Test-Path cluster.ndjson) ? (Get-Content cluster.ndjson).Count : 0))
+          if ($CL_EXIT -ne 0) {
+            Write-Host "----- Cluster stderr -----"
+            if (Test-Path cluster.err.txt) { Get-Content cluster.err.txt | Write-Host } else { Write-Host "(no stderr captured)" }
+          }
+
+          # Fail the step if any benchmark failed
+          if ($AM_EXIT -ne 0 -or $CL_EXIT -ne 0) { exit 1 } else { exit 0 }
+
+
+      - name: Run benches (NDJSON - Unix)
+        if: runner.os != 'Windows'
+        id: run_benches_unix
+        shell: bash
         run: |
           set -e
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            AM=build/benchmarks/Release/am_bench.exe
-            CL=build/benchmarks/Release/cluster_bench.exe
-          else
-            AM=build/benchmarks/am_bench
-            CL=build/benchmarks/cluster_bench
-          fi
+          AM=build/benchmarks/am_bench
+          CL=build/benchmarks/cluster_bench
           echo "Using $AM and $CL"
           "$AM" --json --warmup_ms=$WARMUP_MS --measure_ms=$MEASURE_MS --samples=$SAMPLES > am.ndjson
           "$CL" --json --warmup_ms=$WARMUP_MS --measure_ms=$MEASURE_MS --samples=$SAMPLES > cluster.ndjson
           echo "am.ndjson lines: $(wc -l < am.ndjson || echo 0)"
           echo "cluster.ndjson lines: $(wc -l < cluster.ndjson || echo 0)"
-        shell: bash
 
       - name: Save NDJSON artifacts
         uses: actions/upload-artifact@v4
@@ -146,4 +194,49 @@ jobs:
         with:
           name: perf-agg-${{ matrix.os }}
           path: perf_agg.ndjson
+
+  refresh_ubuntu_baselines:
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'refresh_ubuntu_baselines' || github.event.inputs.action == '')
+    name: Refresh baselines on ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Make script executable
+        run: chmod +x scripts/refresh_baselines.sh
+      - name: Run baseline refresh script (NDJSON + provenance)
+        env:
+          OS_TAG: linux
+        run: |
+          ./scripts/refresh_baselines.sh
+      - name: Show generated files
+        run: |
+          ls -la ci/perf_baseline || true
+      - name: Commit changes (if any)
+        run: |
+          set -e
+          git add ci/perf_baseline/*.ndjson ci/perf_baseline/*provenance*.json ci/perf_baseline/linux_baseline*
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit."
+          else
+            git commit -m "ci(perf): refresh ubuntu-latest baselines with provenance" \
+                        -m "Auto-generated by GitHub Actions on $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi
+      - name: Upload baselines as artifact (for review)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-baselines-${{ github.run_id }}
+          path: |
+            ci/perf_baseline/*.ndjson
+            ci/perf_baseline/*provenance*.json
+            ci/perf_baseline/linux_baseline.ndjson
+            ci/perf_baseline/linux_baseline_provenance.json
+
 

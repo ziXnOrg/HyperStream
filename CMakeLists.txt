@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
-project(HyperStream VERSION 0.1.0 LANGUAGES CXX)
+project(HyperStream VERSION 0.1.0 LANGUAGES C CXX)
 
 # Enforce C++ standard and compile commands for tooling
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -66,6 +66,37 @@ target_include_directories(hyperstream INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+# C API (Phase H Increment 1)
+# Configurable monomorphized sets for (Dim, Capacity)
+set(HYPERSTREAM_CAPI_DIMS "64;96;128;256;512;1024;10000" CACHE STRING "Semicolon-separated list of supported dimensions for C API")
+set(HYPERSTREAM_CAPI_CAPS "4;8;16;32;64;128" CACHE STRING "Semicolon-separated list of supported capacities for C API")
+
+add_library(hyperstream_capi SHARED
+  src/hyperstream_c_api.cpp
+)
+
+# Export symbols
+if(MSVC)
+  target_compile_definitions(hyperstream_capi PRIVATE HYPERSTREAM_C_API_BUILD=1)
+else()
+  target_compile_definitions(hyperstream_capi PRIVATE HYPERSTREAM_C_API_BUILD=1)
+endif()
+
+target_include_directories(hyperstream_capi
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(hyperstream_capi PRIVATE hyperstream)
+
+# Strict warnings for the C API implementation
+if(MSVC)
+  target_compile_options(hyperstream_capi PRIVATE /W4 /WX)
+else()
+  target_compile_options(hyperstream_capi PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
 
 # TODO: When sources exist, add compiled library targets for backends.
 

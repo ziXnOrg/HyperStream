@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include <cstdint>
+#include <gtest/gtest.h>
 #include <string_view>
 
 #include "hyperstream/core/hypervector.hpp"
@@ -40,4 +40,3 @@ TEST(SymbolEncoder, EncodeIdMatchesRepeatedCalls) {
 }
 
 }  // namespace
-

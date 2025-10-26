@@ -2137,7 +2137,7 @@ TEST_P(EachTestP, ExplainsMatchResultCorrectly) {
   Matcher<set<int>> m = Each(2);
   EXPECT_EQ("", Explain(m, a));
 
-  Matcher<const int(&)[1]> n = Each(1);  // NOLINT
+  Matcher<const int (&)[1]> n = Each(1);  // NOLINT
 
   const int b[1] = {1};
   EXPECT_EQ("", Explain(n, b));
@@ -2272,7 +2272,7 @@ TEST(PointwiseTest, MakesCopyOfRhs) {
   rhs.push_back(4);
 
   int lhs[] = {1, 2};
-  const Matcher<const int(&)[2]> m = Pointwise(IsHalfOf(), rhs);
+  const Matcher<const int (&)[2]> m = Pointwise(IsHalfOf(), rhs);
   EXPECT_THAT(lhs, m);
 
   // Changing rhs now shouldn't affect m, which made a copy of rhs.
@@ -2400,7 +2400,7 @@ TEST(UnorderedPointwiseTest, MakesCopyOfRhs) {
   rhs.push_back(4);
 
   int lhs[] = {2, 1};
-  const Matcher<const int(&)[2]> m = UnorderedPointwise(IsHalfOf(), rhs);
+  const Matcher<const int (&)[2]> m = UnorderedPointwise(IsHalfOf(), rhs);
   EXPECT_THAT(lhs, m);
 
   // Changing rhs now shouldn't affect m, which made a copy of rhs.
@@ -3055,7 +3055,7 @@ TEST(ContainsTest, SetDoesNotMatchWhenElementIsNotInContainer) {
 
 TEST_P(ContainsTestP, ExplainsMatchResultCorrectly) {
   const int a[2] = {1, 2};
-  Matcher<const int(&)[2]> m = Contains(2);
+  Matcher<const int (&)[2]> m = Contains(2);
   EXPECT_EQ("whose element #1 matches", Explain(m, a));
 
   m = Contains(3);

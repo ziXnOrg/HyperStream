@@ -32,7 +32,7 @@
 
 #include "gtest/gtest.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
 
   // An ad-hoc assertion outside of all tests.

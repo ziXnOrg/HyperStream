@@ -605,8 +605,8 @@ class ParameterizedTestSuiteInfo : public ParameterizedTestSuiteInfoBase {
               SuiteApiResolver<TestSuite>::GetTearDownCaseOrSuite(file, line),
               test_info->test_meta_factory->CreateTestFactory(*param_it));
         }  // for param_it
-      }    // for gen_it
-    }      // for test_it
+      }  // for gen_it
+    }  // for test_it
 
     if (!generated_instantiations) {
       // There are no generaotrs, or they all generate nothing ...

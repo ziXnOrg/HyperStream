@@ -85,7 +85,7 @@ struct ConvertibleGlobalType {
 };
 void operator<<(ConvertibleGlobalType&, int);
 static_assert(sizeof(decltype(std::declval<ConvertibleGlobalType&>()
-                              << 1)(*)()) > 0,
+                              << 1) (*)()) > 0,
               "error in operator<< overload resolution");
 
 namespace testing {
@@ -6691,7 +6691,7 @@ TEST(ColoredOutputTest, UsesColorsWhenTermSupportsColors) {
   SetEnv("TERM", "linux");            // TERM supports colors.
   EXPECT_TRUE(ShouldUseColor(true));  // Stdout is a TTY.
 
-  SetEnv("TERM", "cygwin");  // TERM supports colors.
+  SetEnv("TERM", "cygwin");           // TERM supports colors.
   EXPECT_TRUE(ShouldUseColor(true));  // Stdout is a TTY.
 #endif  // GTEST_OS_WINDOWS
 }
@@ -7439,7 +7439,7 @@ TEST(NativeArrayTest, TypeMembersAreCorrect) {
   StaticAssertTypeEq<int[2], NativeArray<int[2]>::value_type>();
 
   StaticAssertTypeEq<const char*, NativeArray<char>::const_iterator>();
-  StaticAssertTypeEq<const bool(*)[2], NativeArray<bool[2]>::const_iterator>();
+  StaticAssertTypeEq<const bool (*)[2], NativeArray<bool[2]>::const_iterator>();
 }
 
 TEST(NativeArrayTest, MethodsWork) {
@@ -7596,7 +7596,9 @@ TEST(FlatTuple, ConstructorCalls) {
 
   // Default construction.
   ConstructionCounting::Reset();
-  { FlatTuple<ConstructionCounting> tuple; }
+  {
+    FlatTuple<ConstructionCounting> tuple;
+  }
   EXPECT_EQ(ConstructionCounting::default_ctor_calls, 1);
   EXPECT_EQ(ConstructionCounting::dtor_calls, 1);
   EXPECT_EQ(ConstructionCounting::copy_ctor_calls, 0);

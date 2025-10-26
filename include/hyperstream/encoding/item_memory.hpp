@@ -10,33 +10,41 @@
 
 #include "hyperstream/core/hypervector.hpp"
 
-namespace hyperstream {
-namespace encoding {
+namespace hyperstream::encoding {
 
 namespace detail_itemmemory {
 
 constexpr std::uint64_t kGoldenGamma = 0x9e3779b97f4a7c15ULL;
+constexpr std::uint64_t kSplitMixMul1 = 0xbf58476d1ce4e5b9ULL;
+constexpr std::uint64_t kSplitMixMul2 = 0x94d049bb133111ebULL;
+constexpr std::uint32_t kSplitMixShift1 = 30U;
+constexpr std::uint32_t kSplitMixShift2 = 27U;
+constexpr std::uint32_t kSplitMixShift3 = 31U;
+constexpr std::uint32_t kHalfWordBits = 32U;
+constexpr std::uint64_t kFnvOffsetBasis64 = 1469598103934665603ULL;
+constexpr std::uint64_t kFnvPrime64 = 1099511628211ULL;
+constexpr std::uint64_t kTokenSalt = 0x5bf03635f0b7a54dULL;
 
-inline std::uint64_t SplitMix64Step(std::uint64_t& state) {
+[[nodiscard]] inline std::uint64_t SplitMix64Step(std::uint64_t& state) noexcept {
   state += kGoldenGamma;
-  std::uint64_t z = state;
-  z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-  z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-  return z ^ (z >> 31);
+  std::uint64_t mixed_value = state;
+  mixed_value = (mixed_value ^ (mixed_value >> kSplitMixShift1)) * kSplitMixMul1;
+  mixed_value = (mixed_value ^ (mixed_value >> kSplitMixShift2)) * kSplitMixMul2;
+  return mixed_value ^ (mixed_value >> kSplitMixShift3);
 }
 
-inline std::uint64_t MixSymbol(std::uint64_t seed, std::uint64_t symbol) {
-  std::uint64_t s = seed + symbol * 0x94d049bb133111ebULL;
-  s ^= (symbol << 32) | (symbol >> 32);
-  s *= 0xbf58476d1ce4e5b9ULL;
-  return s;
+[[nodiscard]] inline std::uint64_t MixSymbol(std::uint64_t seed_value, std::uint64_t symbol) noexcept {
+  std::uint64_t mixed_value = (seed_value + (symbol * kSplitMixMul2));
+  mixed_value ^= (symbol << kHalfWordBits) | (symbol >> kHalfWordBits);
+  mixed_value *= kSplitMixMul1;
+  return mixed_value;
 }
 
-inline std::uint64_t Fnv1a64(std::string_view token, std::uint64_t seed) {
-  std::uint64_t hash = 1469598103934665603ULL ^ seed;
-  for (unsigned char c : token) {
-    hash ^= static_cast<std::uint64_t>(c);
-    hash *= 1099511628211ULL;
+[[nodiscard]] inline std::uint64_t Fnv1a64(std::string_view token, std::uint64_t seed_value) noexcept {
+  std::uint64_t hash = kFnvOffsetBasis64 ^ seed_value;
+  for (unsigned char char_value : token) {
+    hash ^= static_cast<std::uint64_t>(char_value);
+    hash *= kFnvPrime64;
   }
   return hash;
 }
@@ -59,32 +67,32 @@ inline std::uint64_t Fnv1a64(std::string_view token, std::uint64_t seed) {
 template <std::size_t Dim>
 class ItemMemory {
  public:
-  explicit ItemMemory(std::uint64_t seed) : seed_(seed) {}
+  explicit ItemMemory(std::uint64_t seed_value) : seed_(seed_value) {}
 
-  /** Encodes a 64-bit id into a binary HyperVector. */
-  void EncodeId(std::uint64_t id, core::HyperVector<Dim, bool>* out) const noexcept {
+  /** Encodes a 64-bit identifier into a binary HyperVector. */
+  void EncodeId(std::uint64_t identifier, core::HyperVector<Dim, bool>* out) const noexcept {
     using detail_itemmemory::MixSymbol;
     using detail_itemmemory::SplitMix64Step;
     static constexpr std::size_t kWordBits = core::HyperVector<Dim, bool>::kWordBits;
 
     out->Clear();
-    std::uint64_t state = MixSymbol(seed_, id);
+    std::uint64_t state = MixSymbol(seed_, identifier);
     auto& words = out->Words();
-    for (std::size_t i = 0; i < words.size(); ++i) {
-      words[i] = SplitMix64Step(state);
+    for (std::size_t word_index = 0; word_index < words.size(); ++word_index) {
+      words[word_index] = SplitMix64Step(state);
     }
     // Mask trailing bits beyond Dim in the last word.
-    const std::size_t excess = words.size() * kWordBits - Dim;
-    if (excess > 0) {
-      const std::uint64_t mask = (excess == kWordBits) ? 0ULL : (~0ULL >> excess);
-      words.back() &= mask;
+    const std::size_t excess_bits = words.size() * kWordBits - Dim;
+    if (excess_bits > 0) {
+      const std::uint64_t tail_mask = (~0ULL) >> excess_bits;
+      words.back() &= tail_mask;
     }
   }
 
   /** Encodes a token (string) into a binary HyperVector. */
-  void EncodeToken(std::string_view token, core::HyperVector<Dim, bool>* out) const {
+  void EncodeToken(std::string_view token, core::HyperVector<Dim, bool>* out) const noexcept {
     using detail_itemmemory::Fnv1a64;
-    const std::uint64_t sym = Fnv1a64(token, seed_ ^ 0x5bf03635f0b7a54dULL);
+    const std::uint64_t sym = Fnv1a64(token, seed_ ^ detail_itemmemory::kTokenSalt);
     EncodeId(sym, out);
   }
 
@@ -92,6 +100,4 @@ class ItemMemory {
   std::uint64_t seed_;
 };
 
-}  // namespace encoding
-}  // namespace hyperstream
-
+}  // namespace hyperstream::encoding

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "hyperstream/config.hpp"
 
 TEST(Config, DefaultsAndProfiles) {
@@ -33,4 +34,3 @@ TEST(Config, FootprintHelpersAreCorrectForSmallDims) {
   // CleanupMemory: 2 * 8 = 16
   EXPECT_EQ(CleanupMemoryStorageBytes(64, 2), static_cast<std::size_t>(16));
 }
-

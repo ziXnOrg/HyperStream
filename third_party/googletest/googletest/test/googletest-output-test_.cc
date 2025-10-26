@@ -538,15 +538,17 @@ TEST(ExpectNonfatalFailureTest, CanReferenceLocalVariables) {
   int m = 0;
   static int n;
   n = 1;
-  EXPECT_NONFATAL_FAILURE({ EXPECT_EQ(m, n) << "Expected non-fatal failure."; },
-                          "Expected non-fatal failure.");
+  EXPECT_NONFATAL_FAILURE(
+      { EXPECT_EQ(m, n) << "Expected non-fatal failure."; },
+      "Expected non-fatal failure.");
 }
 
 // Tests that EXPECT_NONFATAL_FAILURE() succeeds when there is exactly
 // one non-fatal failure and no fatal failure.
 TEST(ExpectNonfatalFailureTest, SucceedsWhenThereIsOneNonfatalFailure) {
-  EXPECT_NONFATAL_FAILURE({ ADD_FAILURE() << "Expected non-fatal failure."; },
-                          "Expected non-fatal failure.");
+  EXPECT_NONFATAL_FAILURE(
+      { ADD_FAILURE() << "Expected non-fatal failure."; },
+      "Expected non-fatal failure.");
 }
 
 // Tests that EXPECT_NONFATAL_FAILURE() fails when there is no
@@ -609,15 +611,16 @@ TEST(ExpectFatalFailureTest, CanReferenceGlobalVariables) {
 TEST(ExpectFatalFailureTest, CanReferenceLocalStaticVariables) {
   static int n;
   n = 1;
-  EXPECT_FATAL_FAILURE({ ASSERT_EQ(0, n) << "Expected fatal failure."; },
-                       "Expected fatal failure.");
+  EXPECT_FATAL_FAILURE(
+      { ASSERT_EQ(0, n) << "Expected fatal failure."; },
+      "Expected fatal failure.");
 }
 
 // Tests that EXPECT_FATAL_FAILURE() succeeds when there is exactly
 // one fatal failure and no non-fatal failure.
 TEST(ExpectFatalFailureTest, SucceedsWhenThereIsOneFatalFailure) {
-  EXPECT_FATAL_FAILURE({ FAIL() << "Expected fatal failure."; },
-                       "Expected fatal failure.");
+  EXPECT_FATAL_FAILURE(
+      { FAIL() << "Expected fatal failure."; }, "Expected fatal failure.");
 }
 
 // Tests that EXPECT_FATAL_FAILURE() fails when there is no fatal

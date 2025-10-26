@@ -1,11 +1,9 @@
 #include <gtest/gtest.h>
-
 #include <random>
 
 #include "hyperstream/backend/cpu_backend.hpp"
 #include "hyperstream/core/hypervector.hpp"
 #include "hyperstream/core/ops.hpp"
-
 
 namespace {
 
@@ -172,7 +170,6 @@ TEST(CpuBackend, AgreesWithCoreOnAwkwardDims) {
   CheckBackendCoreAgreement<10000>();
 }
 
-
 TEST(CpuBackend, AgreesWithCoreOnRandomVectors_FixedSeed) {
   // For several dims, sample random pairs with fixed seed and verify backend==core
   auto run_for_dim = [](auto dim_tag) {
@@ -181,7 +178,8 @@ TEST(CpuBackend, AgreesWithCoreOnRandomVectors_FixedSeed) {
     std::bernoulli_distribution dist(0.5);
     for (int iter = 0; iter < 40; ++iter) {
       HyperVector<D, bool> a, b, out_core, out_backend;
-      a.Clear(); b.Clear();
+      a.Clear();
+      b.Clear();
       for (std::size_t i = 0; i < D; ++i) {
         if (dist(gen)) a.SetBit(i, true);
         if (dist(gen)) b.SetBit(i, true);

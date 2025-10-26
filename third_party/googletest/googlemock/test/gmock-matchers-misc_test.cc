@@ -1409,7 +1409,7 @@ TEST(ContainsTimes, ListMatchesWhenElementQuantityMatches) {
 
 TEST_P(ContainsTimesP, ExplainsMatchResultCorrectly) {
   const int a[2] = {1, 2};
-  Matcher<const int(&)[2]> m = Contains(2).Times(3);
+  Matcher<const int (&)[2]> m = Contains(2).Times(3);
   EXPECT_EQ(
       "whose element #1 matches but whose match quantity of 1 does not match",
       Explain(m, a));

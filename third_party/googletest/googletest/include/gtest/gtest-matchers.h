@@ -513,8 +513,8 @@ class GTEST_API_ Matcher<const std::string&>
 };
 
 template <>
-class GTEST_API_ Matcher<std::string>
-    : public internal::MatcherBase<std::string> {
+class GTEST_API_
+    Matcher<std::string> : public internal::MatcherBase<std::string> {
  public:
   Matcher() = default;
 

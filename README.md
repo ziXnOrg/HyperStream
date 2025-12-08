@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Hyperstream_LOGO.222Z.png" alt="HyperStream Logo" width="400">
+</p>
+
 # HyperStream
 
 High-performance, header-only C++ library for Hyperdimensional Computing (HDC). HyperStream provides binary hypervectors, SIMD-accelerated kernels (SSE2/AVX2), adaptive runtime backend selection, associative memory data structures, and a streaming classification framework.
